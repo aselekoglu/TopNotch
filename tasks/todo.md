@@ -323,14 +323,14 @@
 **Description:** Run full MVP verification, document known limitations, update the spec/plan with any changed decisions, and prepare for implementation review.
 
 **Acceptance criteria:**
-- [ ] Build and test commands pass.
-- [ ] Manual acceptance checks from the spec pass or have documented blockers.
-- [ ] Known limitations and technical risks are documented.
+- [x] Build and test commands pass.
+- [x] Manual acceptance checks from the spec pass or have documented blockers.
+- [x] Known limitations and technical risks are documented.
 
 **Verification:**
-- [ ] Run project build command.
-- [ ] Run project test command.
-- [ ] Complete manual MVP checklist.
+- [x] Run project build command.
+- [x] Run project test command.
+- [x] Complete manual MVP checklist.
 
 **Dependencies:** Tasks 1-15
 

@@ -86,3 +86,21 @@ Since official synced lyrics cannot be programmatically accessed, we recommend i
 
 - **Automation Sandbox Exception**: If the app is sandboxed, we must add the `com.apple.security.temporary-exception.apple-events` entitlement for `com.apple.Music` to compile AppleScript calls.
 - **Privacy Policy**: No clipboard or playback details will be transmitted to remote servers. All queries to fallback lyrics services (if implemented) will query by artist and song title only.
+
+---
+
+## 4. Clipboard and Notes Implementation & UI Polish
+
+### Clipboard Privacy and Retention
+- **Pre-Persistence Filtration**: Regular expressions parse and reject sensitive data (passwords, JWT/OAuth tokens, Bearer auth, API/AWS keys, 2FA/OTP numeric codes, and Luhn-valid credit card numbers) before writing to the local JSON history file.
+- **Local-Only Store**: Clipboard history is saved locally in `~/Library/Application Support/TopNotch/clipboard_history.json`.
+- **Strict Retention**: Prunes entries exceeding 100 items or older than 30 days dynamically upon new entries.
+
+### Notes Scratchpad & Pinned Store
+- **File System Persistence**: Writes scratchpad Markdown and pinned note collections to `~/Library/Application Support/TopNotch/notes.json` on changes.
+- **Clamped Pinned Limits**: The pinned list defaults to a maximum of 8 items, prepending newer notes and removing old entries if the threshold is crossed.
+
+### Apple HIG & UI Clipping Polish
+- **Safe Corner Clearances**: High corner radii (original 34pt) on floating accessory panels clip contents positioned near margins. Downsizing the album art (to 96x96), action button heights (to 44pt), settings/mirror controls, and relaxing the corner radius to 28pt provides a clean, breathing alignment that prevents clipping.
+- **Xcode External Agent Controls**: To compile and run Xcode developer commands via MCP (`mcpbridge`), users must toggle "Allow external agents access to Xcode" in Xcode Settings under General or Developer settings.
+
