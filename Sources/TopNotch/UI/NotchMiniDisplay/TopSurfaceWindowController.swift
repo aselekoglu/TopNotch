@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 import TopNotchCore
 
@@ -6,14 +7,16 @@ import TopNotchCore
 @MainActor
 final class TopSurfaceWindowController: NSWindowController {
     private let onTapPill: () -> Void
+    private var activeScreen: NSScreen?
+    nonisolated(unsafe) private var screenTrackingTimer: Timer?
+    private var cancellables: Set<AnyCancellable> = []
     
     init(onTapPill: @escaping () -> Void) {
         self.onTapPill = onTapPill
-        let windowWidth: CGFloat = 420
-        let windowHeight: CGFloat = 104
+        let initialWindowSize = Self.windowSize(for: SettingsStore.shared.settings)
         
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: windowWidth, height: windowHeight),
+            contentRect: NSRect(x: 0, y: 0, width: initialWindowSize.width, height: initialWindowSize.height),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -27,25 +30,22 @@ final class TopSurfaceWindowController: NSWindowController {
         panel.hidesOnDeactivate = false
         
         super.init(window: panel)
-        
-        // Retrieve target screen geometry details to initialize TopSurfaceView
-        let targetScreen = NSScreen.main ?? NSScreen.screens.first
-        let safeAreaTopInset = targetScreen?.safeAreaInsets.top ?? 0
-        
-        let contentView = TopSurfaceView(safeAreaTopInset: safeAreaTopInset, onTap: onTapPill)
-        let hostingView = NSHostingView(rootView: contentView)
-        panel.contentView = hostingView
-        
-        // Position the window on the main screen
-        positionWindow()
-        
-        // Observe display changes (resolution change, external monitor plugged/unplugged)
+
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(screenParametersChanged),
             name: NSApplication.didChangeScreenParametersNotification,
             object: nil
         )
+
+        SettingsStore.shared.$settings
+            .sink { [weak self] _ in
+                self?.refreshForCurrentEnvironment(forceRehost: false)
+            }
+            .store(in: &cancellables)
+
+        refreshForCurrentEnvironment(forceRehost: true)
+        startScreenTracking()
     }
     
     @available(*, unavailable)
@@ -54,13 +54,14 @@ final class TopSurfaceWindowController: NSWindowController {
     }
     
     deinit {
+        screenTrackingTimer?.invalidate()
         NotificationCenter.default.removeObserver(self)
     }
     
     /// Positions the floating window centered at the top of the selected screen.
     func positionWindow() {
         guard let window = window else { return }
-        guard let targetScreen = NSScreen.main ?? NSScreen.screens.first else { return }
+        guard let targetScreen = activeScreen ?? Self.screenContainingMouse() ?? NSScreen.main ?? NSScreen.screens.first else { return }
         
         let screenMetrics = ScreenMetrics(
             frame: targetScreen.frame,
@@ -85,15 +86,56 @@ final class TopSurfaceWindowController: NSWindowController {
     }
     
     @objc private func screenParametersChanged() {
+        refreshForCurrentEnvironment(forceRehost: true)
+    }
+
+    private func startScreenTracking() {
+        screenTrackingTimer?.invalidate()
+        let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.refreshForCurrentEnvironment(forceRehost: false)
+            }
+        }
+        screenTrackingTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
+
+    private func refreshForCurrentEnvironment(forceRehost: Bool) {
         guard let panel = window as? NSPanel else { return }
-        guard let targetScreen = NSScreen.main ?? NSScreen.screens.first else { return }
-        
-        let safeAreaTopInset = targetScreen.safeAreaInsets.top
-        
-        // Re-inject TopSurfaceView in case the new screen has different safeAreaTopInset (notch vs notchless)
-        let contentView = TopSurfaceView(safeAreaTopInset: safeAreaTopInset, onTap: onTapPill)
-        panel.contentView = NSHostingView(rootView: contentView)
-        
+
+        let resolvedScreen = Self.screenContainingMouse() ?? activeScreen ?? NSScreen.main ?? NSScreen.screens.first
+        let screenChanged = resolvedScreen.map(screenIdentifier) != activeScreen.map(screenIdentifier)
+        if let resolvedScreen {
+            activeScreen = resolvedScreen
+        }
+
+        let updatedSize = Self.windowSize(for: SettingsStore.shared.settings)
+        if panel.frame.size != updatedSize {
+            panel.setContentSize(updatedSize)
+        }
+
+        if forceRehost || screenChanged || panel.contentView == nil {
+            let safeAreaTopInset = activeScreen?.safeAreaInsets.top ?? 0
+            let contentView = TopSurfaceView(safeAreaTopInset: safeAreaTopInset, onTap: onTapPill)
+            panel.contentView = NSHostingView(rootView: contentView)
+        }
+
         positionWindow()
+    }
+
+    private func screenIdentifier(_ screen: NSScreen) -> ObjectIdentifier {
+        ObjectIdentifier(screen)
+    }
+
+    private static func screenContainingMouse() -> NSScreen? {
+        let mouseLocation = NSEvent.mouseLocation
+        return NSScreen.screens.first { $0.frame.contains(mouseLocation) }
+    }
+
+    private static func windowSize(for settings: AppSettings) -> CGSize {
+        CGSize(
+            width: CGFloat(max(settings.inactiveSurfaceWidth, settings.hoverSurfaceWidth)),
+            height: CGFloat(max(settings.inactiveSurfaceHeight, settings.hoverSurfaceHeight))
+        )
     }
 }

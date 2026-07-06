@@ -22,7 +22,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let settingsWindowController = SettingsWindowController()
         self.settingsWindowController = settingsWindowController
 
-        let mainPanelWindowController = MainPanelWindowController(onOpenSettings: { [weak settingsWindowController] in
+        let mainPanelWindowController = MainPanelWindowController(onOpenSettings: { [weak self, weak settingsWindowController] in
+            self?.mainPanelWindowController?.hide()
             settingsWindowController?.show()
         })
         self.mainPanelWindowController = mainPanelWindowController
@@ -39,7 +40,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         topSurfaceWindowController.show()
 
         statusItemController = StatusItemController(
-            onOpenSettings: { [weak settingsWindowController] in
+            onOpenSettings: { [weak self, weak settingsWindowController] in
+                self?.mainPanelWindowController?.hide()
                 settingsWindowController?.show()
             },
             onQuit: {

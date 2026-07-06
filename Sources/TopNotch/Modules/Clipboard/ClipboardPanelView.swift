@@ -12,7 +12,7 @@ struct ClipboardPanelView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             header
 
             if store.entries.isEmpty {
@@ -33,8 +33,9 @@ struct ClipboardPanelView: View {
                 privacyNote
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 11)
+        .padding(.vertical, 9)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Color.white.opacity(0.055))
         .cornerRadius(12)
         .overlay(
@@ -46,20 +47,22 @@ struct ClipboardPanelView: View {
     private var header: some View {
         HStack(spacing: 10) {
             Image(systemName: "doc.on.clipboard")
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.white.opacity(0.86))
-                .frame(width: 30, height: 30)
+                .frame(width: 28, height: 28)
                 .background(Color.white.opacity(0.09))
                 .cornerRadius(8)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Clipboard")
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
                     .foregroundColor(.white)
+                    .lineLimit(1)
 
                 Text("\(store.entries.count) recent text item\(store.entries.count == 1 ? "" : "s")")
-                    .font(.system(size: 11, design: .rounded))
+                    .font(.system(size: 10, design: .rounded))
                     .foregroundColor(.white.opacity(0.55))
+                    .lineLimit(1)
             }
 
             Spacer()
@@ -74,11 +77,11 @@ struct ClipboardPanelView: View {
 
             TextField("Search clipboard", text: $searchText)
                 .textFieldStyle(.plain)
-                .font(.system(size: 12, design: .rounded))
+                .font(.system(size: 11, design: .rounded))
                 .foregroundColor(.white.opacity(0.92))
         }
         .padding(.horizontal, 9)
-        .padding(.vertical, 7)
+        .padding(.vertical, 6)
         .background(Color.white.opacity(0.075))
         .cornerRadius(8)
         .overlay(
@@ -89,8 +92,8 @@ struct ClipboardPanelView: View {
 
     private var entriesList: some View {
         ScrollView(.vertical, showsIndicators: true) {
-            LazyVStack(spacing: 7) {
-                ForEach(filteredEntries.prefix(2)) { entry in
+            LazyVStack(spacing: 6) {
+                ForEach(filteredEntries.prefix(1)) { entry in
                     ClipboardItemRow(
                         entry: entry,
                         isRecentlyCopied: recentlyCopiedID == entry.id,
@@ -100,7 +103,7 @@ struct ClipboardPanelView: View {
             }
             .padding(.vertical, 1)
         }
-        .frame(maxHeight: 90)
+        .frame(maxHeight: 58)
     }
 
     private var emptyState: some View {
@@ -108,10 +111,12 @@ struct ClipboardPanelView: View {
             Text(store.lastRejectionReason == nil ? "No clipboard history yet" : "Private text was not saved")
                 .font(.system(size: 12, weight: .semibold, design: .rounded))
                 .foregroundColor(.white.opacity(0.78))
+                .lineLimit(1)
 
             Text(store.lastRejectionReason == nil ? "Copy regular text and it will appear here. Passwords, tokens, 2FA codes, payment cards, excluded apps, and oversized text are filtered before history." : "The last clipboard change matched the privacy filter, so it was rejected before persistence. Copy regular text to add a history item.")
-                .font(.system(size: 11, design: .rounded))
+                .font(.system(size: 10, design: .rounded))
                 .foregroundColor(.white.opacity(0.52))
+                .lineLimit(3)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -128,17 +133,19 @@ struct ClipboardPanelView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Private text was not saved")
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
                     .foregroundColor(.white.opacity(0.78))
+                    .lineLimit(1)
 
                 Text("The latest clipboard change matched the privacy filter.")
-                    .font(.system(size: 10, design: .rounded))
+                    .font(.system(size: 9, design: .rounded))
                     .foregroundColor(.white.opacity(0.42))
+                    .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(9)
+        .padding(8)
         .background(Color.white.opacity(0.055))
         .cornerRadius(9)
         .overlay(
@@ -158,12 +165,13 @@ struct ClipboardPanelView: View {
     private var privacyNote: some View {
         HStack(alignment: .top, spacing: 6) {
             Image(systemName: "lock.shield")
-                .font(.system(size: 10, weight: .semibold))
+                .font(.system(size: 9, weight: .semibold))
                 .foregroundColor(.white.opacity(0.44))
 
             Text("Private-looking text is filtered before persistence.")
-                .font(.system(size: 10, design: .rounded))
+                .font(.system(size: 9, design: .rounded))
                 .foregroundColor(.white.opacity(0.44))
+                .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

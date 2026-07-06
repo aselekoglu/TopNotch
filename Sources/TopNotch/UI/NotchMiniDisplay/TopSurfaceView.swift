@@ -16,6 +16,7 @@ struct TopSurfaceView: View {
     
     @ObservedObject private var stateStore = MusicStateStore.shared
     @ObservedObject private var settingsStore = SettingsStore.shared
+    @ObservedObject private var highlightStore = NotchCalibrationHighlightStore.shared
     
     // Hover states for mini media buttons
     @State private var isHoveredPrevMini = false
@@ -32,42 +33,54 @@ struct TopSurfaceView: View {
         }
         return safeAreaTopInset > 0
     }
+
+    private var isHoverExpansionActive: Bool {
+        let settings = settingsStore.settings
+        if stateStore.playbackState == .playing {
+            return isHovered && settings.enableLiveActivityExpansion
+        }
+        return isHovered && settings.enableHoverAffordance
+    }
+
+    private var inactiveSurfaceSize: CGSize {
+        CGSize(
+            width: CGFloat(settingsStore.settings.inactiveSurfaceWidth),
+            height: CGFloat(settingsStore.settings.inactiveSurfaceHeight)
+        )
+    }
+
+    private var hoverSurfaceSize: CGSize {
+        CGSize(
+            width: CGFloat(settingsStore.settings.hoverSurfaceWidth),
+            height: CGFloat(settingsStore.settings.hoverSurfaceHeight)
+        )
+    }
+
+    private var physicalDeadzoneSize: CGSize {
+        CGSize(
+            width: CGFloat(settingsStore.settings.customNotchWidth),
+            height: CGFloat(settingsStore.settings.customNotchHeight)
+        )
+    }
+
+    private var notchContentLayout: TopSurfaceContentLayout {
+        NotchGeometryCalculator.calculateTopSurfaceContentLayout(
+            surfaceSize: CGSize(width: targetWidth, height: targetHeight),
+            deadzoneWidth: physicalDeadzoneSize.width,
+            deadzoneHeight: physicalDeadzoneSize.height
+        )
+    }
     
     /// Computes the target width of the pill based on notch presence, playback, and hover state.
     var targetWidth: CGFloat {
-        let playing = stateStore.playbackState == .playing
-        let hoverEnabled = settingsStore.settings.enableHoverAffordance
-        let expansionEnabled = settingsStore.settings.enableLiveActivityExpansion
-        let baseWidth = CGFloat(settingsStore.settings.customNotchWidth)
-        
-        if playing {
-            return (isHovered && expansionEnabled) ? max(360, baseWidth + 160) : max(300, baseWidth + 100)
-        }
-        return (isHovered && hoverEnabled) ? max(300, baseWidth + 60) : baseWidth
+        let size = isHoverExpansionActive ? hoverSurfaceSize : inactiveSurfaceSize
+        return size.width
     }
     
     /// Computes the target height of the pill based on notch presence, playback, and hover state.
     var targetHeight: CGFloat {
-        let playing = stateStore.playbackState == .playing
-        let hoverEnabled = settingsStore.settings.enableHoverAffordance
-        let expansionEnabled = settingsStore.settings.enableLiveActivityExpansion
-        let baseHeight = CGFloat(settingsStore.settings.customNotchHeight)
-        
-        if playing {
-            let expanded = isHovered && expansionEnabled
-            if hasNotch {
-                return expanded ? baseHeight + 70 : baseHeight + 36
-            } else {
-                return expanded ? baseHeight + 60 : baseHeight + 32
-            }
-        } else {
-            let expanded = isHovered && hoverEnabled
-            if hasNotch {
-                return expanded ? baseHeight + 24 : baseHeight
-            } else {
-                return expanded ? baseHeight + 20 : baseHeight
-            }
-        }
+        let size = isHoverExpansionActive ? hoverSurfaceSize : inactiveSurfaceSize
+        return size.height
     }
     
     /// Computes the corner radius for the visual appearance.
@@ -113,18 +126,35 @@ struct TopSurfaceView: View {
                 if playing {
                     if isHovered && expansionEnabled {
                         if let track = stateStore.currentTrack {
-                            expandedNowPlaying(track)
+                            if hasNotch {
+                                expandedNowPlayingWithDeadzone(track)
+                            } else {
+                                expandedNowPlaying(track)
+                            }
                         }
                     } else {
                         if let track = stateStore.currentTrack {
-                            compactNowPlaying(track)
+                            if hasNotch {
+                                compactNowPlayingWithDeadzone(track)
+                            } else {
+                                compactNowPlaying(track)
+                            }
                         } else {
-                            compactIdleSurface(title: "Music")
+                            if hasNotch {
+                                compactIdleSurfaceWithDeadzone(title: "Music")
+                            } else {
+                                compactIdleSurface(title: "Music")
+                            }
                         }
                     }
                 } else {
                     let hoverEnabled = settingsStore.settings.enableHoverAffordance
-                    compactIdleSurface(title: (isHovered && hoverEnabled) ? "Top Notch" : "")
+                    let title = (isHovered && hoverEnabled) ? "Top Notch" : ""
+                    if hasNotch {
+                        compactIdleSurfaceWithDeadzone(title: title)
+                    } else {
+                        compactIdleSurface(title: title)
+                    }
                 }
             }
             .frame(width: targetWidth, height: targetHeight)
@@ -145,6 +175,10 @@ struct TopSurfaceView: View {
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .overlay(alignment: .top) {
+            calibrationHighlightOverlay
+                .padding(.top, topPadding)
+        }
         .onReceive(timer) { _ in
             if stateStore.playbackState == .playing {
                 self.elapsed = stateStore.playerPosition
@@ -205,6 +239,49 @@ struct TopSurfaceView: View {
             equalizerIcon
                 .scaleEffect(0.65)
                 .padding(.trailing, 10)
+        }
+    }
+
+    private func compactNowPlayingWithDeadzone(_ track: NowPlayingTrack) -> some View {
+        VStack(spacing: 0) {
+            deadzoneTopBand(
+                leading: {
+                    albumBadge(
+                        size: max(22, min(notchContentLayout.leadingBandFrame.height, physicalDeadzoneSize.height)),
+                        cornerRadius: 6
+                    )
+                },
+                trailing: {
+                    equalizerIcon
+                        .scaleEffect(0.58, anchor: .trailing)
+                }
+            )
+
+            HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(track.title)
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+
+                    if case .synced(let lines) = stateStore.lyricsState, !lines.isEmpty {
+                        let activeIndex = findActiveIndex(for: lines, time: elapsed)
+                        Text(lines[activeIndex].text)
+                            .font(.system(size: 9, weight: .medium, design: .rounded))
+                            .foregroundColor(.white.opacity(0.6))
+                            .lineLimit(1)
+                    } else {
+                        Text(track.artist)
+                            .font(.system(size: 9, weight: .medium, design: .rounded))
+                            .foregroundColor(.white.opacity(0.5))
+                            .lineLimit(1)
+                    }
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
     }
     
@@ -275,6 +352,84 @@ struct TopSurfaceView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
     }
+
+    private func expandedNowPlayingWithDeadzone(_ track: NowPlayingTrack) -> some View {
+        VStack(spacing: 0) {
+            deadzoneTopBand(
+                leading: {
+                    albumBadge(size: 28, cornerRadius: 6)
+                },
+                trailing: {
+                    equalizerIcon
+                        .scaleEffect(0.62, anchor: .trailing)
+                }
+            )
+
+            VStack(spacing: 6) {
+                HStack(alignment: .center, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(track.title)
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+
+                        Text(track.artist)
+                            .font(.system(size: 9, weight: .medium, design: .rounded))
+                            .foregroundColor(.white.opacity(0.6))
+                            .lineLimit(1)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    HStack(spacing: 10) {
+                        miniControlButton(systemName: "backward.fill", isHovered: isHoveredPrevMini) {
+                            stateStore.previousTrack()
+                        }
+                        .onHover { isHoveredPrevMini = $0 }
+
+                        miniControlButton(
+                            systemName: stateStore.playbackState == .playing ? "pause.fill" : "play.fill",
+                            isHovered: isHoveredPlayMini
+                        ) {
+                            stateStore.playpause()
+                        }
+                        .onHover { isHoveredPlayMini = $0 }
+
+                        miniControlButton(systemName: "forward.fill", isHovered: isHoveredNextMini) {
+                            stateStore.nextTrack()
+                        }
+                        .onHover { isHoveredNextMini = $0 }
+                    }
+                }
+
+                Group {
+                    if case .synced(let lines) = stateStore.lyricsState, !lines.isEmpty {
+                        let activeIndex = findActiveIndex(for: lines, time: elapsed)
+                        VStack(spacing: 1) {
+                            Text(lines[activeIndex].text)
+                                .font(.system(size: 10, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                            if activeIndex < lines.count - 1 {
+                                Text(lines[activeIndex + 1].text)
+                                    .font(.system(size: 8, weight: .medium, design: .rounded))
+                                    .foregroundColor(.white.opacity(0.5))
+                                    .lineLimit(1)
+                            }
+                        }
+                    } else {
+                        Text(track.album)
+                            .font(.system(size: 8, weight: .medium, design: .rounded))
+                            .foregroundColor(.white.opacity(0.45))
+                            .lineLimit(1)
+                    }
+                }
+                .frame(maxWidth: .infinity, minHeight: 22, alignment: .leading)
+            }
+            .padding(.horizontal, 12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+    }
     
     private func compactIdleSurface(title: String) -> some View {
         HStack(spacing: 8) {
@@ -290,6 +445,120 @@ struct TopSurfaceView: View {
             }
         }
         .padding(.horizontal, 16)
+    }
+
+    private func compactIdleSurfaceWithDeadzone(title: String) -> some View {
+        VStack(spacing: 0) {
+            deadzoneTopBand(
+                leading: {
+                    Circle()
+                        .fill(isHovered ? Color.green : Color.white.opacity(0.35))
+                        .frame(width: 6, height: 6)
+                },
+                trailing: {
+                    Color.clear.frame(width: 12, height: 12)
+                }
+            )
+
+            HStack(spacing: 8) {
+                if !title.isEmpty {
+                    Text(title)
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.88))
+                        .lineLimit(1)
+                } else {
+                    Text(" ")
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .hidden()
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+    }
+
+    @ViewBuilder
+    private func deadzoneTopBand<Leading: View, Trailing: View>(
+        @ViewBuilder leading: () -> Leading,
+        @ViewBuilder trailing: () -> Trailing
+    ) -> some View {
+        HStack(alignment: .bottom, spacing: 10) {
+            HStack {
+                leading()
+                Spacer(minLength: 0)
+            }
+            .frame(width: notchContentLayout.leadingBandFrame.width, alignment: .leading)
+            .clipped()
+
+            Spacer(minLength: notchContentLayout.deadzoneFrame.width)
+
+            HStack {
+                Spacer(minLength: 0)
+                trailing()
+            }
+            .frame(width: notchContentLayout.trailingBandFrame.width, alignment: .trailing)
+            .clipped()
+        }
+        .frame(height: max(0, notchContentLayout.deadzoneFrame.height))
+        .padding(.horizontal, 10)
+        .padding(.top, 6)
+    }
+
+    @ViewBuilder
+    private var calibrationHighlightOverlay: some View {
+        if let activeHighlight = highlightStore.activeHighlight {
+            GeometryReader { proxy in
+                ZStack(alignment: .top) {
+                    switch activeHighlight.region {
+                    case .physicalDeadzone:
+                        calibrationRectangle(
+                            size: physicalDeadzoneSize,
+                            color: calibrationColor(for: .physicalDeadzone),
+                            cornerRadius: 8
+                        )
+                    case .inactiveSurface:
+                        calibrationRectangle(
+                            size: inactiveSurfaceSize,
+                            color: calibrationColor(for: .inactiveSurface),
+                            cornerRadius: min(24, inactiveSurfaceSize.height / 2)
+                        )
+                    case .hoverSurface:
+                        calibrationRectangle(
+                            size: hoverSurfaceSize,
+                            color: calibrationColor(for: .hoverSurface),
+                            cornerRadius: min(24, hoverSurfaceSize.height / 2)
+                        )
+                    }
+                }
+                .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
+            }
+            .allowsHitTesting(false)
+            .transition(.opacity)
+        }
+    }
+
+    private func calibrationRectangle(size: CGSize, color: Color, cornerRadius: CGFloat) -> some View {
+        RoundedRectangle(cornerRadius: max(4, cornerRadius), style: .continuous)
+            .fill(color.opacity(0.12))
+            .frame(width: size.width, height: max(2, size.height))
+            .overlay(
+                RoundedRectangle(cornerRadius: max(4, cornerRadius), style: .continuous)
+                    .stroke(color.opacity(0.92), lineWidth: 2)
+            )
+            .shadow(color: color.opacity(0.35), radius: 8)
+    }
+
+    private func calibrationColor(for region: NotchCalibrationRegion) -> Color {
+        switch region {
+        case .physicalDeadzone:
+            return Color(red: 0.35, green: 0.67, blue: 1.0)
+        case .inactiveSurface:
+            return Color(red: 0.42, green: 0.86, blue: 0.58)
+        case .hoverSurface:
+            return Color(red: 1.0, green: 0.62, blue: 0.32)
+        }
     }
     
     private func albumBadge(size: CGFloat, cornerRadius: CGFloat) -> some View {

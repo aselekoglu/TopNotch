@@ -12,6 +12,10 @@ public struct AppSettings: Equatable, Sendable, Codable {
     public var targetDisplayIndex: Int
     public var customNotchWidth: Double
     public var customNotchHeight: Double
+    public var inactiveSurfaceWidth: Double
+    public var inactiveSurfaceHeight: Double
+    public var hoverSurfaceWidth: Double
+    public var hoverSurfaceHeight: Double
     
     public init(
         visibleModuleIdentifiers: [String] = ["music", "clipboard", "notes"],
@@ -24,7 +28,11 @@ public struct AppSettings: Equatable, Sendable, Codable {
         notesMaxPinnedCount: Int = 8,
         targetDisplayIndex: Int = 0,
         customNotchWidth: Double = 180.0,
-        customNotchHeight: Double = 24.0
+        customNotchHeight: Double = 24.0,
+        inactiveSurfaceWidth: Double = 420.0,
+        inactiveSurfaceHeight: Double = 64.0,
+        hoverSurfaceWidth: Double = 560.0,
+        hoverSurfaceHeight: Double = 118.0
     ) {
         self.visibleModuleIdentifiers = visibleModuleIdentifiers
         self.enableHoverAffordance = enableHoverAffordance
@@ -37,6 +45,10 @@ public struct AppSettings: Equatable, Sendable, Codable {
         self.targetDisplayIndex = targetDisplayIndex
         self.customNotchWidth = customNotchWidth
         self.customNotchHeight = customNotchHeight
+        self.inactiveSurfaceWidth = inactiveSurfaceWidth
+        self.inactiveSurfaceHeight = inactiveSurfaceHeight
+        self.hoverSurfaceWidth = hoverSurfaceWidth
+        self.hoverSurfaceHeight = hoverSurfaceHeight
     }
     
     private enum CodingKeys: String, CodingKey {
@@ -51,6 +63,10 @@ public struct AppSettings: Equatable, Sendable, Codable {
         case targetDisplayIndex
         case customNotchWidth
         case customNotchHeight
+        case inactiveSurfaceWidth
+        case inactiveSurfaceHeight
+        case hoverSurfaceWidth
+        case hoverSurfaceHeight
     }
     
     public init(from decoder: Decoder) throws {
@@ -66,5 +82,9 @@ public struct AppSettings: Equatable, Sendable, Codable {
         self.targetDisplayIndex = try container.decodeIfPresent(Int.self, forKey: .targetDisplayIndex) ?? 0
         self.customNotchWidth = try container.decodeIfPresent(Double.self, forKey: .customNotchWidth) ?? 180.0
         self.customNotchHeight = try container.decodeIfPresent(Double.self, forKey: .customNotchHeight) ?? 24.0
+        self.inactiveSurfaceWidth = try container.decodeIfPresent(Double.self, forKey: .inactiveSurfaceWidth) ?? 420.0
+        self.inactiveSurfaceHeight = try container.decodeIfPresent(Double.self, forKey: .inactiveSurfaceHeight) ?? 64.0
+        self.hoverSurfaceWidth = try container.decodeIfPresent(Double.self, forKey: .hoverSurfaceWidth) ?? 560.0
+        self.hoverSurfaceHeight = try container.decodeIfPresent(Double.self, forKey: .hoverSurfaceHeight) ?? 118.0
     }
 }

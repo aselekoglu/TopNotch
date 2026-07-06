@@ -30,6 +30,10 @@ final class SettingsUIIntegrationTests: XCTestCase {
         XCTAssertTrue(store.settings.enableLiveActivityExpansion)
         XCTAssertFalse(store.settings.forceVirtualIslandStyle)
         XCTAssertEqual(store.settings.targetDisplayIndex, 0)
+        XCTAssertEqual(store.settings.inactiveSurfaceWidth, 420.0)
+        XCTAssertEqual(store.settings.inactiveSurfaceHeight, 64.0)
+        XCTAssertEqual(store.settings.hoverSurfaceWidth, 560.0)
+        XCTAssertEqual(store.settings.hoverSurfaceHeight, 118.0)
         
         // Simulating interaction by updating settings via the store,
         // which the SettingsView binds to
@@ -38,6 +42,8 @@ final class SettingsUIIntegrationTests: XCTestCase {
         updated.enableLiveActivityExpansion = false
         updated.forceVirtualIslandStyle = true
         updated.targetDisplayIndex = 1
+        updated.inactiveSurfaceWidth = 640.0
+        updated.hoverSurfaceHeight = 170.0
         
         store.update(settings: updated)
         
@@ -46,5 +52,7 @@ final class SettingsUIIntegrationTests: XCTestCase {
         XCTAssertFalse(store.settings.enableLiveActivityExpansion)
         XCTAssertTrue(store.settings.forceVirtualIslandStyle)
         XCTAssertEqual(store.settings.targetDisplayIndex, 1)
+        XCTAssertEqual(store.settings.inactiveSurfaceWidth, 640.0)
+        XCTAssertEqual(store.settings.hoverSurfaceHeight, 170.0)
     }
 }

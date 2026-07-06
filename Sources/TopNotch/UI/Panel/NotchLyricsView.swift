@@ -15,12 +15,14 @@ struct NotchLyricsView: View {
                 Text("Loading lyrics...")
                     .font(.system(size: 11, weight: .medium, design: .rounded))
                     .foregroundColor(.white.opacity(0.44))
+                    .lineLimit(1)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 
             case .unavailable:
                 Text("No lyrics available")
                     .font(.system(size: 11, weight: .medium, design: .rounded))
                     .foregroundColor(.white.opacity(0.36))
+                    .lineLimit(1)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 
             case .plain(let text):
@@ -32,12 +34,14 @@ struct NotchLyricsView: View {
                             .font(.system(size: 10, design: .rounded))
                             .foregroundColor(.white.opacity(0.4))
                             .lineLimit(1)
+                            .minimumScaleFactor(0.75)
                     }
                     if lines.count > 1 {
                         Text(lines[1])
                             .font(.system(size: 12, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
                             .lineLimit(1)
+                            .minimumScaleFactor(0.75)
                     } else if lines.count == 1 {
                         // If only 1 line
                         Spacer().frame(height: 10)
@@ -47,6 +51,7 @@ struct NotchLyricsView: View {
                             .font(.system(size: 10, design: .rounded))
                             .foregroundColor(.white.opacity(0.4))
                             .lineLimit(1)
+                            .minimumScaleFactor(0.75)
                     }
                 }
                 
@@ -55,6 +60,7 @@ struct NotchLyricsView: View {
                     Text("No lyrics lines")
                         .font(.system(size: 11, weight: .medium, design: .rounded))
                         .foregroundColor(.white.opacity(0.36))
+                        .lineLimit(1)
                 } else {
                     let activeIndex = findActiveIndex(for: lines, time: elapsed)
                     
@@ -65,6 +71,7 @@ struct NotchLyricsView: View {
                                 .font(.system(size: 10, weight: .medium, design: .rounded))
                                 .foregroundColor(.white.opacity(0.4))
                                 .lineLimit(1)
+                                .minimumScaleFactor(0.75)
                         } else {
                             Text(" ")
                                 .font(.system(size: 10))
@@ -75,6 +82,7 @@ struct NotchLyricsView: View {
                             .font(.system(size: 13, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
                             .lineLimit(1)
+                            .minimumScaleFactor(0.75)
                         
                         // Next line
                         if activeIndex < lines.count - 1 {
@@ -82,6 +90,7 @@ struct NotchLyricsView: View {
                                 .font(.system(size: 10, weight: .medium, design: .rounded))
                                 .foregroundColor(.white.opacity(0.4))
                                 .lineLimit(1)
+                                .minimumScaleFactor(0.75)
                         } else {
                             Text(" ")
                                 .font(.system(size: 10))
@@ -90,7 +99,8 @@ struct NotchLyricsView: View {
                 }
             }
         }
-        .frame(width: 340, height: 48)
+        .padding(.horizontal, 8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .contentShape(Rectangle())
     }
     

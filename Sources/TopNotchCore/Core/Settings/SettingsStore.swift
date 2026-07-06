@@ -55,7 +55,12 @@ public final class SettingsStore: ObservableObject, @unchecked Sendable {
         
         do {
             let data = try Data(contentsOf: storageURL)
-            self.settings = try decoder.decode(AppSettings.self, from: data)
+            var decoded = try decoder.decode(AppSettings.self, from: data)
+            let migrated = Self.migrateLegacySurfaceDefaultsIfNeeded(&decoded)
+            self.settings = decoded
+            if migrated {
+                save()
+            }
         } catch {
             // Falls back to default if missing or decoding fails
             self.settings = AppSettings()
@@ -74,5 +79,21 @@ public final class SettingsStore: ObservableObject, @unchecked Sendable {
         return appSupport
             .appendingPathComponent("TopNotch", isDirectory: true)
             .appendingPathComponent("settings.json")
+    }
+
+    private static func migrateLegacySurfaceDefaultsIfNeeded(_ settings: inout AppSettings) -> Bool {
+        guard settings.inactiveSurfaceWidth == 600.0,
+              settings.inactiveSurfaceHeight == 88.0,
+              settings.hoverSurfaceWidth == 720.0,
+              settings.hoverSurfaceHeight == 150.0 else {
+            return false
+        }
+
+        let defaults = AppSettings()
+        settings.inactiveSurfaceWidth = defaults.inactiveSurfaceWidth
+        settings.inactiveSurfaceHeight = defaults.inactiveSurfaceHeight
+        settings.hoverSurfaceWidth = defaults.hoverSurfaceWidth
+        settings.hoverSurfaceHeight = defaults.hoverSurfaceHeight
+        return true
     }
 }

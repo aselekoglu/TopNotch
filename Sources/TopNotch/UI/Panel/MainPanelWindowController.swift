@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 import TopNotchCore
 
@@ -6,14 +7,19 @@ import TopNotchCore
 @MainActor
 final class MainPanelWindowController: NSWindowController {
     nonisolated(unsafe) private var clickMonitor: Any?
+    private let onOpenSettings: () -> Void
     private var currentTopSurfaceFrame: CGRect = .zero
+    private var cancellables: Set<AnyCancellable> = []
     
     init(onOpenSettings: @escaping () -> Void) {
-        let panelWidth: CGFloat = 840
-        let panelHeight: CGFloat = 260
+        self.onOpenSettings = onOpenSettings
+        let initialSize = MainPanelMetrics.panelSize(
+            for: MusicStateStore.shared.lyricsState,
+            screenWidth: (NSScreen.main ?? NSScreen.screens.first)?.visibleFrame.width
+        )
         
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: panelWidth, height: panelHeight),
+            contentRect: NSRect(x: 0, y: 0, width: initialSize.width, height: initialSize.height),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -28,10 +34,24 @@ final class MainPanelWindowController: NSWindowController {
         
         super.init(window: panel)
         
-        // Wrap MainPanelView inside an NSHostingView with premium rounded corners and borders
-        let contentView = MainPanelView(onOpenSettings: onOpenSettings)
+        let contentView = MainPanelView(
+            safeAreaTopInset: (NSScreen.main ?? NSScreen.screens.first)?.safeAreaInsets.top ?? 0,
+            onOpenSettings: onOpenSettings
+        )
         
         panel.contentView = NSHostingView(rootView: contentView)
+
+        MusicStateStore.shared.$lyricsState
+            .sink { [weak self] _ in
+                self?.resizeVisiblePanel()
+            }
+            .store(in: &cancellables)
+
+        SettingsStore.shared.$settings
+            .sink { [weak self] _ in
+                self?.resizeVisiblePanel()
+            }
+            .store(in: &cancellables)
     }
     
     @available(*, unavailable)
@@ -61,16 +81,19 @@ final class MainPanelWindowController: NSWindowController {
         guard let window = window else { return }
         
         self.currentTopSurfaceFrame = topSurfaceFrame
-        
-        let panelWidth = window.frame.width
-        let panelHeight = window.frame.height
+        let targetScreen = screen(containing: topSurfaceFrame)
+        installContent(for: targetScreen)
+        let panelSize = MainPanelMetrics.panelSize(
+            for: MusicStateStore.shared.lyricsState,
+            screenWidth: targetScreen?.visibleFrame.width
+        )
         
         // Center horizontally below the top surface pill
-        let x = topSurfaceFrame.minX + (topSurfaceFrame.width - panelWidth) / 2
+        let x = topSurfaceFrame.minX + (topSurfaceFrame.width - panelSize.width) / 2
         
-        let y = topSurfaceFrame.maxY - panelHeight
+        let y = topSurfaceFrame.maxY - panelSize.height
         
-        window.setFrame(NSRect(x: x, y: y, width: panelWidth, height: panelHeight), display: true)
+        window.setFrame(NSRect(x: x, y: y, width: panelSize.width, height: panelSize.height), display: true)
         window.orderFrontRegardless()
         
         // Start tracking clicks outside the panel to dismiss it
@@ -104,5 +127,24 @@ final class MainPanelWindowController: NSWindowController {
             NSEvent.removeMonitor(monitor)
             clickMonitor = nil
         }
+    }
+
+    private func resizeVisiblePanel() {
+        guard let window = window, window.isVisible, currentTopSurfaceFrame != .zero else { return }
+        show(relativeTo: currentTopSurfaceFrame, topInset: 0)
+    }
+
+    private func installContent(for screen: NSScreen?) {
+        let safeAreaTopInset = screen?.safeAreaInsets.top ?? 0
+        window?.contentView = NSHostingView(
+            rootView: MainPanelView(
+                safeAreaTopInset: safeAreaTopInset,
+                onOpenSettings: onOpenSettings
+            )
+        )
+    }
+
+    private func screen(containing frame: CGRect) -> NSScreen? {
+        NSScreen.screens.first { $0.frame.intersects(frame) } ?? NSScreen.main ?? NSScreen.screens.first
     }
 }

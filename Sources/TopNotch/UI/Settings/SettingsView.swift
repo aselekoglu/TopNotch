@@ -4,6 +4,7 @@ import TopNotchCore
 
 struct SettingsView: View {
     @ObservedObject private var store = SettingsStore.shared
+    @ObservedObject private var highlightStore = NotchCalibrationHighlightStore.shared
     @State private var activeTab = 0
     
     var body: some View {
@@ -27,7 +28,7 @@ struct SettingsView: View {
                 .tag(2)
         }
         .padding(20)
-        .frame(width: 480, height: 420)
+        .frame(width: 520, height: 560)
     }
     
     private var interactionView: some View {
@@ -105,44 +106,34 @@ struct SettingsView: View {
 
             Divider()
 
-            Text("Notch Calibration")
-                .font(.headline)
+            calibrationPreview
 
-            VStack(spacing: 8) {
-                HStack {
-                    Text("Notch Width:")
-                        .font(.subheadline)
-                        .frame(width: 90, alignment: .leading)
-                    Slider(value: Binding(
-                        get: { store.settings.customNotchWidth },
-                        set: { newValue in
-                            var updated = store.settings
-                            updated.customNotchWidth = newValue
-                            store.update(settings: updated)
-                        }
-                    ), in: 100...400, step: 5)
-                    Text("\(Int(store.settings.customNotchWidth)) pt")
-                        .font(.system(.body, design: .monospaced))
-                        .frame(width: 60, alignment: .trailing)
-                }
+            settingsGroup(
+                title: "Physical Notch Deadzone",
+                region: .physicalDeadzone,
+                width: settingsBinding(\.customNotchWidth, region: .physicalDeadzone, axis: .width),
+                height: settingsBinding(\.customNotchHeight, region: .physicalDeadzone, axis: .height),
+                widthRange: 40...420,
+                heightRange: 0...96
+            )
 
-                HStack {
-                    Text("Notch Height:")
-                        .font(.subheadline)
-                        .frame(width: 90, alignment: .leading)
-                    Slider(value: Binding(
-                        get: { store.settings.customNotchHeight },
-                        set: { newValue in
-                            var updated = store.settings
-                            updated.customNotchHeight = newValue
-                            store.update(settings: updated)
-                        }
-                    ), in: 10...80, step: 1)
-                    Text("\(Int(store.settings.customNotchHeight)) pt")
-                        .font(.system(.body, design: .monospaced))
-                        .frame(width: 60, alignment: .trailing)
-                }
-            }
+            settingsGroup(
+                title: "Inactive View Size",
+                region: .inactiveSurface,
+                width: settingsBinding(\.inactiveSurfaceWidth, region: .inactiveSurface, axis: .width),
+                height: settingsBinding(\.inactiveSurfaceHeight, region: .inactiveSurface, axis: .height),
+                widthRange: 220...760,
+                heightRange: 34...150
+            )
+
+            settingsGroup(
+                title: "Hover View Size",
+                region: .hoverSurface,
+                width: settingsBinding(\.hoverSurfaceWidth, region: .hoverSurface, axis: .width),
+                height: settingsBinding(\.hoverSurfaceHeight, region: .hoverSurface, axis: .height),
+                widthRange: 280...900,
+                heightRange: 56...240
+            )
         }
     }
     
@@ -247,5 +238,185 @@ struct SettingsView: View {
         
         activeModules.swapAt(index, targetIndex)
         ModuleRegistry.shared.updateModulesOrder(to: activeModules)
+    }
+
+    private func settingsGroup(
+        title: String,
+        region: NotchCalibrationRegion,
+        width: Binding<Double>,
+        height: Binding<Double>,
+        widthRange: ClosedRange<Double>,
+        heightRange: ClosedRange<Double>
+    ) -> some View {
+        let isActive = highlightStore.activeHighlight?.region == region
+        return GroupBox {
+            VStack(alignment: .leading, spacing: 10) {
+                settingSliderRow(
+                    label: "Width",
+                    region: region,
+                    axis: .width,
+                    value: width,
+                    range: widthRange
+                )
+
+                settingSliderRow(
+                    label: "Height",
+                    region: region,
+                    axis: .height,
+                    value: height,
+                    range: heightRange
+                )
+            }
+            .padding(.top, 2)
+        } label: {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(calibrationColor(for: region).opacity(isActive ? 0.12 : 0.0))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(calibrationColor(for: region).opacity(isActive ? 0.55 : 0.0), lineWidth: 1)
+        )
+    }
+
+    private func settingSliderRow(
+        label: String,
+        region: NotchCalibrationRegion,
+        axis: NotchCalibrationAxis,
+        value: Binding<Double>,
+        range: ClosedRange<Double>
+    ) -> some View {
+        let isActive = highlightStore.activeHighlight == NotchCalibrationHighlight(region: region, axis: axis)
+        return HStack(spacing: 10) {
+            Text(label)
+                .font(.subheadline)
+                .foregroundColor(isActive ? calibrationColor(for: region) : .primary)
+                .frame(width: 52, alignment: .leading)
+
+            Slider(
+                value: value,
+                in: range,
+                step: 1,
+                onEditingChanged: { isEditing in
+                    if isEditing {
+                        highlightStore.activate(region: region, axis: axis)
+                    }
+                }
+            )
+            .tint(calibrationColor(for: region))
+
+            Text("\(Int(value.wrappedValue)) pt")
+                .font(.system(.body, design: .monospaced))
+                .foregroundColor(isActive ? calibrationColor(for: region) : .secondary)
+                .frame(width: 54, alignment: .trailing)
+        }
+        .padding(.vertical, 3)
+        .padding(.horizontal, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(calibrationColor(for: region).opacity(isActive ? 0.16 : 0.0))
+        )
+    }
+
+    private var calibrationPreview: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Calibration Preview")
+                .font(.subheadline.weight(.semibold))
+
+            GeometryReader { proxy in
+                let settings = store.settings
+                let inactiveWidth = CGFloat(settings.inactiveSurfaceWidth)
+                let inactiveHeight = CGFloat(settings.inactiveSurfaceHeight)
+                let hoverWidth = CGFloat(settings.hoverSurfaceWidth)
+                let hoverHeight = CGFloat(settings.hoverSurfaceHeight)
+                let deadzoneWidth = CGFloat(settings.customNotchWidth)
+                let deadzoneHeight = CGFloat(settings.customNotchHeight)
+                let maxSurfaceWidth = max(hoverWidth, inactiveWidth, deadzoneWidth, 1)
+                let maxSurfaceHeight = max(hoverHeight, inactiveHeight, deadzoneHeight, 1)
+                let scale = min((proxy.size.width - 24) / maxSurfaceWidth, (proxy.size.height - 18) / maxSurfaceHeight)
+                let inactiveSize = CGSize(
+                    width: inactiveWidth * scale,
+                    height: inactiveHeight * scale
+                )
+                let hoverSize = CGSize(
+                    width: hoverWidth * scale,
+                    height: hoverHeight * scale
+                )
+                let deadzoneSize = CGSize(
+                    width: deadzoneWidth * scale,
+                    height: max(2, deadzoneHeight * scale)
+                )
+
+                ZStack(alignment: .top) {
+                    calibrationShape(size: hoverSize, region: .hoverSurface)
+                    calibrationShape(size: inactiveSize, region: .inactiveSurface)
+
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(calibrationColor(for: .physicalDeadzone).opacity(activeOpacity(for: .physicalDeadzone, fill: true)))
+                        .frame(width: deadzoneSize.width, height: deadzoneSize.height)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .stroke(calibrationColor(for: .physicalDeadzone).opacity(activeOpacity(for: .physicalDeadzone, fill: false)), lineWidth: 2)
+                        )
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .padding(.top, 6)
+            }
+            .frame(height: 92)
+            .background(Color.white.opacity(0.05))
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+            )
+        }
+    }
+
+    private func calibrationShape(size: CGSize, region: NotchCalibrationRegion) -> some View {
+        RoundedRectangle(cornerRadius: max(8, min(size.height / 3, 22)), style: .continuous)
+            .fill(calibrationColor(for: region).opacity(activeOpacity(for: region, fill: true)))
+            .frame(width: size.width, height: size.height)
+            .overlay(
+                RoundedRectangle(cornerRadius: max(8, min(size.height / 3, 22)), style: .continuous)
+                    .stroke(calibrationColor(for: region).opacity(activeOpacity(for: region, fill: false)), lineWidth: 2)
+            )
+    }
+
+    private func activeOpacity(for region: NotchCalibrationRegion, fill: Bool) -> Double {
+        let isActive = highlightStore.activeHighlight?.region == region
+        if isActive {
+            return fill ? 0.24 : 0.92
+        }
+        return fill ? 0.07 : 0.28
+    }
+
+    private func calibrationColor(for region: NotchCalibrationRegion) -> Color {
+        switch region {
+        case .physicalDeadzone:
+            return Color(red: 0.35, green: 0.67, blue: 1.0)
+        case .inactiveSurface:
+            return Color(red: 0.42, green: 0.86, blue: 0.58)
+        case .hoverSurface:
+            return Color(red: 1.0, green: 0.62, blue: 0.32)
+        }
+    }
+
+    private func settingsBinding(
+        _ keyPath: WritableKeyPath<AppSettings, Double>,
+        region: NotchCalibrationRegion,
+        axis: NotchCalibrationAxis
+    ) -> Binding<Double> {
+        Binding(
+            get: { store.settings[keyPath: keyPath] },
+            set: { value in
+                highlightStore.activate(region: region, axis: axis)
+                var updated = store.settings
+                updated[keyPath: keyPath] = value
+                store.update(settings: updated)
+            }
+        )
     }
 }

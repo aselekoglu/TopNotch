@@ -35,6 +35,10 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(store.settings.targetDisplayIndex, 0)
         XCTAssertEqual(store.settings.customNotchWidth, 180.0)
         XCTAssertEqual(store.settings.customNotchHeight, 24.0)
+        XCTAssertEqual(store.settings.inactiveSurfaceWidth, 420.0)
+        XCTAssertEqual(store.settings.inactiveSurfaceHeight, 64.0)
+        XCTAssertEqual(store.settings.hoverSurfaceWidth, 560.0)
+        XCTAssertEqual(store.settings.hoverSurfaceHeight, 118.0)
     }
     
     func testUpdatingSettingsFiresPublisher() {
@@ -74,12 +78,74 @@ final class SettingsStoreTests: XCTestCase {
         newSettings.targetDisplayIndex = 2
         newSettings.customNotchWidth = 250.0
         newSettings.customNotchHeight = 35.0
+        newSettings.inactiveSurfaceWidth = 640.0
+        newSettings.inactiveSurfaceHeight = 96.0
+        newSettings.hoverSurfaceWidth = 760.0
+        newSettings.hoverSurfaceHeight = 160.0
         
         store.update(settings: newSettings)
         
         let reloadedStore = makeStore(storageURL: url)
         XCTAssertEqual(reloadedStore.settings, newSettings)
         
+        try? FileManager.default.removeItem(at: url)
+    }
+
+    func testBackwardCompatibleDecodeDefaultsMissingSurfaceSizes() throws {
+        let json = """
+        {
+          "visibleModuleIdentifiers": ["music", "clipboard", "notes"],
+          "enableHoverAffordance": true,
+          "enableLiveActivityExpansion": true,
+          "forceVirtualIslandStyle": false,
+          "clipboardMaxItemsCount": 100,
+          "clipboardMaxAgeDays": 30,
+          "excludedAppBundleIdentifiers": [],
+          "notesMaxPinnedCount": 8,
+          "targetDisplayIndex": 0,
+          "customNotchWidth": 180.0,
+          "customNotchHeight": 24.0
+        }
+        """
+        let data = Data(json.utf8)
+        let decoded = try JSONDecoder().decode(AppSettings.self, from: data)
+
+        XCTAssertEqual(decoded.inactiveSurfaceWidth, 420.0)
+        XCTAssertEqual(decoded.inactiveSurfaceHeight, 64.0)
+        XCTAssertEqual(decoded.hoverSurfaceWidth, 560.0)
+        XCTAssertEqual(decoded.hoverSurfaceHeight, 118.0)
+    }
+
+    func testLoadMigratesLegacySurfaceDefaultsToCompactDefaults() throws {
+        let url = tempStorageURL()
+        let json = """
+        {
+          "visibleModuleIdentifiers": ["music", "clipboard", "notes"],
+          "enableHoverAffordance": true,
+          "enableLiveActivityExpansion": true,
+          "forceVirtualIslandStyle": false,
+          "clipboardMaxItemsCount": 100,
+          "clipboardMaxAgeDays": 30,
+          "excludedAppBundleIdentifiers": [],
+          "notesMaxPinnedCount": 8,
+          "targetDisplayIndex": 0,
+          "customNotchWidth": 180.0,
+          "customNotchHeight": 24.0,
+          "inactiveSurfaceWidth": 600.0,
+          "inactiveSurfaceHeight": 88.0,
+          "hoverSurfaceWidth": 720.0,
+          "hoverSurfaceHeight": 150.0
+        }
+        """
+        try Data(json.utf8).write(to: url)
+
+        let store = makeStore(storageURL: url)
+
+        XCTAssertEqual(store.settings.inactiveSurfaceWidth, 420.0)
+        XCTAssertEqual(store.settings.inactiveSurfaceHeight, 64.0)
+        XCTAssertEqual(store.settings.hoverSurfaceWidth, 560.0)
+        XCTAssertEqual(store.settings.hoverSurfaceHeight, 118.0)
+
         try? FileManager.default.removeItem(at: url)
     }
     

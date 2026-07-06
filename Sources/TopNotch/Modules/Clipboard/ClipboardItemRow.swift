@@ -11,9 +11,9 @@ struct ClipboardItemRow: View {
         HStack(alignment: .top, spacing: 10) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(entry.text.trimmingCharacters(in: .whitespacesAndNewlines))
-                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
                     .foregroundColor(.white.opacity(0.92))
-                    .lineLimit(3)
+                    .lineLimit(2)
                     .multilineTextAlignment(.leading)
                     .textSelection(.disabled)
 
@@ -34,17 +34,17 @@ struct ClipboardItemRow: View {
 
             Button(action: onCopy) {
                 Image(systemName: isRecentlyCopied ? "checkmark" : "doc.on.doc")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(.white.opacity(isRecentlyCopied ? 0.95 : 0.72))
-                    .frame(width: 28, height: 28)
+                    .frame(width: 26, height: 26)
                     .background(Color.white.opacity(isRecentlyCopied ? 0.18 : 0.08))
                     .clipShape(Circle())
             }
             .buttonStyle(.plain)
             .help("Copy")
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 9)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 7)
         .background(Color.white.opacity(0.055))
         .cornerRadius(10)
         .overlay(

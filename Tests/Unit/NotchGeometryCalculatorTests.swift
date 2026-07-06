@@ -63,4 +63,33 @@ final class NotchGeometryCalculatorTests: XCTestCase {
         XCTAssertEqual(windowFrame.origin.x, 714)
         XCTAssertEqual(windowFrame.origin.y, 1037)
     }
+
+    func testCalculateTopSurfaceContentLayoutReservesCenteredDeadzone() {
+        let layout = NotchGeometryCalculator.calculateTopSurfaceContentLayout(
+            surfaceSize: CGSize(width: 360, height: 92),
+            deadzoneWidth: 180,
+            deadzoneHeight: 28
+        )
+
+        XCTAssertEqual(layout.deadzoneFrame.minX, 90, accuracy: 0.001)
+        XCTAssertEqual(layout.deadzoneFrame.width, 180, accuracy: 0.001)
+        XCTAssertEqual(layout.leadingBandFrame.maxX, layout.deadzoneFrame.minX, accuracy: 0.001)
+        XCTAssertEqual(layout.trailingBandFrame.minX, layout.deadzoneFrame.maxX, accuracy: 0.001)
+        XCTAssertGreaterThan(layout.lowerBandFrame.minY, layout.deadzoneFrame.maxY)
+        XCTAssertEqual(layout.lowerBandFrame.width, 340, accuracy: 0.001)
+    }
+
+    func testCalculateTopSurfaceContentLayoutClampsOversizedDeadzone() {
+        let layout = NotchGeometryCalculator.calculateTopSurfaceContentLayout(
+            surfaceSize: CGSize(width: 140, height: 64),
+            deadzoneWidth: 220,
+            deadzoneHeight: 30,
+            horizontalPadding: 8
+        )
+
+        XCTAssertEqual(layout.deadzoneFrame.width, 124, accuracy: 0.001)
+        XCTAssertEqual(layout.leadingBandFrame.width, 0, accuracy: 0.001)
+        XCTAssertEqual(layout.trailingBandFrame.width, 0, accuracy: 0.001)
+        XCTAssertGreaterThan(layout.lowerBandFrame.height, 0)
+    }
 }
