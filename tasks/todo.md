@@ -154,13 +154,13 @@
 **Description:** Create filtering rules that reject sensitive-looking text before persistence.
 
 **Acceptance criteria:**
-- [ ] Password/token/2FA/payment-like patterns are filtered.
-- [ ] Very large text is rejected.
-- [ ] Excluded source apps can be represented.
+- [x] Password/token/2FA/payment-like patterns are filtered.
+- [x] Very large text is rejected.
+- [x] Excluded source apps can be represented.
 
 **Verification:**
-- [ ] Unit tests for sensitive pattern filtering.
-- [ ] Unit tests for size limits and excluded app handling.
+- [x] Unit tests for sensitive pattern filtering.
+- [x] Unit tests for size limits and excluded app handling.
 
 **Dependencies:** Task 1
 
