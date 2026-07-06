@@ -32,6 +32,7 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(store.settings.clipboardMaxAgeDays, 30)
         XCTAssertTrue(store.settings.excludedAppBundleIdentifiers.isEmpty)
         XCTAssertEqual(store.settings.notesMaxPinnedCount, 8)
+        XCTAssertEqual(store.settings.targetDisplayIndex, 0)
     }
     
     func testUpdatingSettingsFiresPublisher() {
@@ -68,6 +69,7 @@ final class SettingsStoreTests: XCTestCase {
         newSettings.clipboardMaxAgeDays = 14
         newSettings.excludedAppBundleIdentifiers = ["com.apple.Terminal"]
         newSettings.notesMaxPinnedCount = 10
+        newSettings.targetDisplayIndex = 2
         
         store.update(settings: newSettings)
         

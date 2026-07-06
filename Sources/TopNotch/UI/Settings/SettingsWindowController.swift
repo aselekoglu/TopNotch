@@ -4,10 +4,10 @@ import SwiftUI
 @MainActor
 final class SettingsWindowController: NSWindowController {
     init() {
-        let contentView = SettingsView(configuration: .taskOneDefault)
+        let contentView = SettingsView()
         let hostingView = NSHostingView(rootView: contentView)
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 440, height: 280),
+            contentRect: NSRect(x: 0, y: 0, width: 480, height: 300),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false

@@ -9,6 +9,7 @@ public struct AppSettings: Equatable, Sendable, Codable {
     public var clipboardMaxAgeDays: Int
     public var excludedAppBundleIdentifiers: Set<String>
     public var notesMaxPinnedCount: Int
+    public var targetDisplayIndex: Int
     
     public init(
         visibleModuleIdentifiers: [String] = ["music", "clipboard", "notes"],
@@ -18,7 +19,8 @@ public struct AppSettings: Equatable, Sendable, Codable {
         clipboardMaxItemsCount: Int = 100,
         clipboardMaxAgeDays: Int = 30,
         excludedAppBundleIdentifiers: Set<String> = [],
-        notesMaxPinnedCount: Int = 8
+        notesMaxPinnedCount: Int = 8,
+        targetDisplayIndex: Int = 0
     ) {
         self.visibleModuleIdentifiers = visibleModuleIdentifiers
         self.enableHoverAffordance = enableHoverAffordance
@@ -28,5 +30,6 @@ public struct AppSettings: Equatable, Sendable, Codable {
         self.clipboardMaxAgeDays = clipboardMaxAgeDays
         self.excludedAppBundleIdentifiers = excludedAppBundleIdentifiers
         self.notesMaxPinnedCount = notesMaxPinnedCount
+        self.targetDisplayIndex = targetDisplayIndex
     }
 }

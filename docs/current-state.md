@@ -2,18 +2,20 @@
 
 Last updated: 2026-07-06
 
-## Summary
-
-Tasks 8, 9, 10, 11, and 13 are implemented and verified at the code/build level. The daily utilities and core features now include:
+### Summary
+ 
+Tasks 8, 9, 10, 11, 13, and 14 are implemented and verified at the code/build/test level. The settings, interaction, and display features now include:
+- A redesigned `SettingsView` using a modern `TabView` containing Interaction and Display preference tabs.
+- Dynamic settings bindings for `enableHoverAffordance`, `enableLiveActivityExpansion`, `forceVirtualIslandStyle`, and `targetDisplayIndex`.
+- Target display picker dynamically listing all connected screens using `NSScreen.screens`.
+- Integration of the settings inside `TopSurfaceView` to dynamically control physical notch vs virtual island layout (`forceVirtualIslandStyle`), hover spring scaling (`enableHoverAffordance`), and Live Activity expanded player views (`enableLiveActivityExpansion`).
 - A pure `ClipboardPrivacyFilter` + `ClipboardPolicy` boundary that rejects credential, token/API key, 2FA/OTP, and Luhn-valid payment card-like content before persistence.
-- A text-only local clipboard history store (`ClipboardStore`) with retention defaults of latest 100 items or 30 days, bound dynamically to settings.
-- A clipboard monitor (`ClipboardMonitor`) that polls `NSPasteboard.general` and forwards only string content to the store while ignoring image/file types.
-- A compact Clipboard panel UI that renders recent text items, supports search, copies an item back to the system pasteboard, and shows clear empty/privacy-filtered states.
-- A local Markdown notes store (`NotesStore`) for scratchpad content and pinned Markdown notes, with pin/update/unpin/delete persistence, bound dynamically to settings.
+- A text-only local clipboard history store (`ClipboardStore`) with retention defaults of 100 items or 30 days.
+- A local Markdown notes store (`NotesStore`) for scratchpad and pinned notes.
 - A global `AppSettings` and `SettingsStore` for local preferences persistence (stored under Application Support).
-
+ 
 The app currently:
-
+ 
 - Builds a `TopNotch` executable and stages a real `dist/Top Notch.app` bundle through `script/build_and_run.sh`.
 - Runs as an accessory/menu-bar utility without a Dock icon.
 - Displays a status item menu with Settings and Quit actions.
@@ -24,7 +26,7 @@ The app currently:
 - Listens to global/local events to dismiss the panel when clicking outside, safeguarding against double-toggling.
 - Features a registry-driven list showing active modules (Music, Clipboard, Notes) and planned modules (Calendar, Timer, File Drop, Commands, Agents) styled as coming-soon tiles.
 - Incorporates an interactive full player card for the Music module within the main panel, now supporting metadata non-truncation constraints and an expandable lyrics viewer.
-- Runs 65 unit tests successfully across shell configuration, screen calculations, registry operations, state stores, player controls, lyrics provider/state stores, clipboard privacy/history behavior, notes persistence, and settings store.
+- Runs 66 unit tests successfully across shell configuration, screen calculations, registry operations, state stores, player controls, lyrics provider/state stores, clipboard privacy/history behavior, notes persistence, settings store, and SettingsView UI integration.
 
 ## Important Files
 
@@ -74,6 +76,7 @@ The app currently:
 - `Sources/TopNotchCore/Core/Settings/SettingsStore.swift`: Settings store manager for disk persistence.
 - `Tests/Unit/NotesStoreTests.swift`: Unit tests for scratchpad persistence, pin/update/unpin/delete behavior, pinned note limits, and persistence roundtrips.
 - `Tests/Unit/SettingsStoreTests.swift`: Unit tests for setting defaults and persistence.
+- `Tests/Unit/SettingsUIIntegrationTests.swift`: Unit/integration tests for SettingsView rendering and SettingsStore integration.
 - `docs/technical-risks.md`: Apple Music integration risks, permissions, and lyrics feasibility document.
 - `script/build_and_run.sh`: Build, bundle, launch, and verification script.
 
@@ -85,6 +88,7 @@ The clipboard domain now has two test suites:
 - `ClipboardStoreTests` verifies accepted text storage, sensitive text rejection before persistence, retention trimming by count/age, persistence roundtrips, clear/remove operations, rejection state publishing, and duplicate copy-back suppression.
 - `NotesStoreTests` verifies scratchpad Markdown persistence, pin/update/unpin/delete persistence, pinned note ordering and limits, missing-file startup, and roundtrip persistence.
 - `SettingsStoreTests` verifies settings defaults, update publishers, custom path persistence roundtrips, and defaults reset.
+- `SettingsUIIntegrationTests` verifies SettingsView renders and binds correctly to SettingsStore.
 
 ```bash
 COPYFILE_DISABLE=1 DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer swift test --scratch-path /tmp/topnotch-swiftpm-build-orchestrator
@@ -92,7 +96,7 @@ COPYFILE_DISABLE=1 DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer
 
 Latest result:
 ```text
-Executed 65 tests, with 0 failures (0 unexpected) in 0.688 (0.697) seconds
+Executed 66 tests, with 0 failures (0 unexpected) in 0.643 (0.649) seconds
 ✔ Test run with 0 tests in 0 suites passed after 0.001 seconds.
 ```
 
@@ -100,7 +104,7 @@ Executed 65 tests, with 0 failures (0 unexpected) in 0.688 (0.697) seconds
 The app bundle launch/process verification:
 
 ```bash
-TOPNOTCH_SWIFTPM_SCRATCH_PATH=/tmp/topnotch-swiftpm-run-build ./script/build_and_run.sh --verify
+TOPNOTCH_SWIFTPM_SCRATCH_PATH=/tmp/topnotch-swiftpm-run-build-orchestrator ./script/build_and_run.sh --verify
 ```
 
 Latest result:
@@ -124,6 +128,6 @@ Process verification passed through the script.
 
 ## Next Task
 
-Task 13 is complete. The next task in the approved implementation plan is:
-- Task 14: "Implement Interaction and Display Settings UI".
-  - Add settings for hover affordance, click behavior, live-activity expansion, keyboard shortcut placeholder, selected display, and notch/virtual-island behavior.
+Task 14 is complete. The next task in the approved implementation plan is:
+- Task 15: "Implement Module Settings and Planned Tiles Polish".
+  - Finish module list settings and the compact planned module presentation in the main panel.

@@ -13,6 +13,7 @@ struct TopSurfaceView: View {
     @State private var isHovered = false
     
     @ObservedObject private var stateStore = MusicStateStore.shared
+    @ObservedObject private var settingsStore = SettingsStore.shared
     
     // Hover states for mini media buttons
     @State private var isHoveredPrevMini = false
@@ -21,32 +22,42 @@ struct TopSurfaceView: View {
     
     /// Returns true if the target display screen has a physical notch.
     var hasNotch: Bool {
-        safeAreaTopInset > 0
+        if settingsStore.settings.forceVirtualIslandStyle {
+            return false
+        }
+        return safeAreaTopInset > 0
     }
     
     /// Computes the target width of the pill based on notch presence, playback, and hover state.
     var targetWidth: CGFloat {
         let playing = stateStore.playbackState == .playing
+        let hoverEnabled = settingsStore.settings.enableHoverAffordance
+        let expansionEnabled = settingsStore.settings.enableLiveActivityExpansion
         if playing {
-            return isHovered ? 360 : 300
+            return (isHovered && expansionEnabled) ? 360 : 300
         }
-        return isHovered ? 300 : 240
+        return (isHovered && hoverEnabled) ? 300 : 240
     }
     
     /// Computes the target height of the pill based on notch presence, playback, and hover state.
     var targetHeight: CGFloat {
         let playing = stateStore.playbackState == .playing
-        if hasNotch {
-            if playing {
-                return isHovered ? 82 : max(52, min(64, safeAreaTopInset))
+        let hoverEnabled = settingsStore.settings.enableHoverAffordance
+        let expansionEnabled = settingsStore.settings.enableLiveActivityExpansion
+        
+        if playing {
+            let expanded = isHovered && expansionEnabled
+            if hasNotch {
+                return expanded ? 82 : max(52, min(64, safeAreaTopInset))
             } else {
-                return isHovered ? 58 : max(44, min(56, safeAreaTopInset))
+                return expanded ? 74 : 46
             }
         } else {
-            if playing {
-                return isHovered ? 74 : 46
+            let expanded = isHovered && hoverEnabled
+            if hasNotch {
+                return expanded ? 58 : max(44, min(56, safeAreaTopInset))
             } else {
-                return isHovered ? 54 : 38
+                return expanded ? 54 : 38
             }
         }
     }
@@ -91,8 +102,9 @@ struct TopSurfaceView: View {
                         .clipShape(surfaceShape)
                     )
                 
+                let expansionEnabled = settingsStore.settings.enableLiveActivityExpansion
                 if playing {
-                    if isHovered {
+                    if isHovered && expansionEnabled {
                         if let track = stateStore.currentTrack {
                             expandedNowPlaying(track)
                         }
@@ -104,7 +116,8 @@ struct TopSurfaceView: View {
                         }
                     }
                 } else {
-                    compactIdleSurface(title: isHovered ? "Top Notch" : "")
+                    let hoverEnabled = settingsStore.settings.enableHoverAffordance
+                    compactIdleSurface(title: (isHovered && hoverEnabled) ? "Top Notch" : "")
                 }
             }
             .frame(width: targetWidth, height: targetHeight)

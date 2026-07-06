@@ -280,20 +280,21 @@
 **Description:** Add settings for hover affordance, click behavior, live-activity expansion, keyboard shortcut placeholder, selected display, and notch/virtual-island behavior.
 
 **Acceptance criteria:**
-- [ ] User can configure hover affordance and live-activity expansion.
-- [ ] User can select target display where feasible.
-- [ ] Settings affect runtime behavior without restart where practical.
+- [x] User can configure hover affordance and live-activity expansion.
+- [x] User can select target display where feasible.
+- [x] Settings affect runtime behavior without restart where practical.
 
 **Verification:**
-- [ ] Manual check: change interaction settings and confirm behavior.
-- [ ] Manual check: selected display behavior on available setup.
+- [x] Manual check: change interaction settings and confirm behavior.
+- [x] Manual check: selected display behavior on available setup.
 
 **Dependencies:** Tasks 2, 13
 
 **Files likely touched:**
-- `NotchWorkflowApp/UI/Settings/InteractionSettingsView.swift`
-- `NotchWorkflowApp/UI/Settings/DisplaySettingsView.swift`
-- `NotchWorkflowApp/Core/Settings/AppSettings.swift`
+- `Sources/TopNotch/UI/Settings/SettingsView.swift`
+- `Sources/TopNotch/UI/NotchMiniDisplay/TopSurfaceView.swift`
+- `Sources/TopNotchCore/Core/Settings/AppSettings.swift`
+- `Tests/Unit/SettingsUIIntegrationTests.swift`
 
 **Estimated scope:** M
 
