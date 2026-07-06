@@ -55,26 +55,26 @@ App shell and window positioning
 ```
 
 ## Phase 1: Foundation
-- [ ] Task 1: Scaffold native macOS app shell
-- [ ] Task 2: Build notch/virtual-island window positioning prototype
-- [ ] Task 3: Add module registry and planned module model
+- [x] Task 1: Scaffold native macOS app shell
+- [x] Task 2: Build notch/virtual-island window positioning prototype
+- [x] Task 3: Add module registry and planned module model
 
 ### Checkpoint: Foundation
-- [ ] App builds and launches as a macOS utility.
-- [ ] A top-center/notch-adjacent surface can be shown and clicked.
-- [ ] Active and planned modules render from shared registry data.
+- [x] App builds and launches as a macOS utility.
+- [x] A top-center/notch-adjacent surface can be shown and clicked.
+- [x] Active and planned modules render from shared registry data.
 
 ## Phase 2: Music Hook
-- [ ] Task 4: Investigate Apple Music now-playing and lyrics feasibility
-- [ ] Task 5: Implement Apple Music provider boundary and now-playing state
-- [ ] Task 6: Implement mini display and music detail panel
-- [ ] Task 7: Implement lyrics fallback states
+- [x] Task 4: Investigate Apple Music now-playing and lyrics feasibility
+- [x] Task 5: Implement Apple Music provider boundary and now-playing state
+- [x] Task 6: Implement mini display and music detail panel
+- [x] Task 7: Implement lyrics fallback states
 
 ### Checkpoint: Music
-- [ ] Playing Apple Music track appears in mini display.
-- [ ] Hover expands live activity.
-- [ ] Full panel shows track and lyrics/fallback state.
-- [ ] App handles unavailable lyrics cleanly.
+- [x] Playing Apple Music track appears in mini display.
+- [x] Hover expands live activity.
+- [x] Full panel shows track and lyrics/fallback state.
+- [x] App handles unavailable lyrics cleanly.
 
 ## Phase 3: Daily Utilities
 - [ ] Task 8: Implement clipboard privacy filters

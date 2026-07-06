@@ -133,13 +133,13 @@
 **Description:** Add the lyrics state model and UI states for synced lyrics, plain lyrics, and no lyrics.
 
 **Acceptance criteria:**
-- [ ] Lyrics model distinguishes synced, plain, unavailable, and error states.
-- [ ] UI renders each state cleanly.
-- [ ] Synced lyrics path is isolated behind a provider/fallback contract.
+- [x] Lyrics model distinguishes synced, plain, unavailable, and error states.
+- [x] UI renders each state cleanly.
+- [x] Synced lyrics path is isolated behind a provider/fallback contract.
 
 **Verification:**
-- [ ] Unit tests for lyrics fallback selection.
-- [ ] Manual check with mocked synced/plain/unavailable states.
+- [x] Unit tests for lyrics fallback selection.
+- [x] Manual check with mocked synced/plain/unavailable states.
 
 **Dependencies:** Task 6
 

@@ -4,7 +4,7 @@ Last updated: 2026-07-06
 
 ## Summary
 
-Task 6, "Implement Mini Display and Music Detail Panel", has been implemented and verified. The top-center surface pill now binds to `MusicStateStore` to dynamically update its size and text when Apple Music is playing. On hover, it expands smoothly into a Live Activity mini-player with interactive play/pause and skip controls (acting via AppleScript). The Music module row in the main dropdown panel has been updated to a premium player card showcasing custom artwork gradients, song details, and media control buttons.
+Task 7, "Implement Lyrics Fallback States", has been implemented and verified. LyricsState, LyricsProvider, and AppleMusicLyricsProvider protocols/implementations are complete. The Music module player card in `MusicWidgetView` now features a collapsible/expandable lyrics card displaying scrollable plain lyrics, synced lyrics, loading, and minimalist Turkish unavailable ("Lyrics Yok") fallback views. A dedicated async unit test suite `LyricsStateStoreTests` has been introduced to verify these states and transitions.
 
 The app currently:
 
@@ -17,8 +17,8 @@ The app currently:
 - Aligns a dropdown dashboard panel (`NSPanel` with level `.statusBar` and frosted glass background) directly below the pill when clicked.
 - Listens to global/local events to dismiss the panel when clicking outside, safeguarding against double-toggling.
 - Features a registry-driven list showing active modules (Music, Clipboard, Notes) and planned modules (Calendar, Timer, File Drop, Commands, Agents) styled as coming-soon tiles.
-- Incorporates an interactive full player card for the Music module within the main panel.
-- Runs 15 unit tests successfully across shell configuration, screen calculations, registry operations, state stores, and player controls.
+- Incorporates an interactive full player card for the Music module within the main panel, now supporting metadata non-truncation constraints and an expandable lyrics viewer.
+- Runs 21 unit tests successfully across shell configuration, screen calculations, registry operations, state stores, player controls, and lyrics provider/state stores.
 
 ## Important Files
 
@@ -30,6 +30,9 @@ The app currently:
 - `Sources/TopNotchCore/Modules/Music/MediaProvider.swift`: Media provider protocol contract.
 - `Sources/TopNotchCore/Modules/Music/AppleMusicProbe.swift`: Platform now-playing bridge utility.
 - `Sources/TopNotchCore/Modules/Music/AppleMusicProvider.swift`: MediaProvider wrapper around the Apple Music probe.
+- `Sources/TopNotchCore/Modules/Music/LyricsState.swift`: Lyrics state and line models.
+- `Sources/TopNotchCore/Modules/Music/LyricsProvider.swift`: Provider protocol contract.
+- `Sources/TopNotchCore/Modules/Music/AppleMusicLyricsProvider.swift`: Provider implementing AppleScript lyrics extraction.
 - `Sources/TopNotchCore/Modules/Music/MusicStateStore.swift`: MainActor state store/publisher.
 - `Sources/TopNotchCore/Modules/WorkflowModule.swift`: Registry module data definitions.
 - `Sources/TopNotchCore/Modules/ModuleRegistry.swift`: Thread-safe registry store.
@@ -41,7 +44,7 @@ The app currently:
 - `Sources/TopNotch/UI/Panel/MainPanelWindowController.swift`: Dropdown window controller with auto-dismiss behavior.
 - `Sources/TopNotch/UI/Panel/MainPanelView.swift`: SwiftUI dashboard with frosted glass visual effects.
 - `Sources/TopNotch/UI/ModuleGrid/ModuleGridView.swift`: Grid representing active rows, custom widgets, and planned tiles.
-- `Sources/TopNotch/UI/ModuleGrid/MusicWidgetView.swift`: Detailed music player layout for the main panel.
+- `Sources/TopNotch/UI/ModuleGrid/MusicWidgetView.swift`: Detailed music player layout for the main panel, featuring the lyrics card expansion.
 - `Sources/TopNotch/UI/Settings/SettingsWindowController.swift`: Settings window host.
 - `Sources/TopNotch/UI/Settings/SettingsView.swift`: Settings content.
 - `Tests/Unit/AppShellConfigurationTests.swift`: App shell unit tests.
@@ -49,13 +52,14 @@ The app currently:
 - `Tests/Unit/ModuleRegistryTests.swift`: Registry management unit tests.
 - `Tests/Unit/MusicStateStoreTests.swift`: Music state publisher and provider mock tests.
 - `Tests/Unit/MediaControlTests.swift`: Unit tests for playback controls forwarding.
+- `Tests/Unit/LyricsStateStoreTests.swift`: Unit tests for lyrics provider and state transitions.
 - `docs/technical-risks.md`: Apple Music integration risks, permissions, and lyrics feasibility document.
 - `script/build_and_run.sh`: Build, bundle, launch, and verification script.
 
 ## Verification History
 
-### Unit Tests
-A new test suite `MediaControlTests` was added to verify control commands are forwarded and trigger correct state refreshes.
+## Unit Tests
+A new test suite `LyricsStateStoreTests` was added to verify default state, loading transition, plain text emission, and unavailable fallbacks.
 
 ```bash
 COPYFILE_DISABLE=1 DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer swift test --scratch-path /tmp/topnotch-swiftpm-build-orchestrator
@@ -63,7 +67,7 @@ COPYFILE_DISABLE=1 DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer
 
 Latest result:
 ```text
-Executed 15 tests, with 0 failures (0 unexpected) in 0.003 (0.005) seconds
+Executed 21 tests, with 0 failures (0 unexpected) in 0.580 (0.585) seconds
 ✔ Test run with 0 tests in 0 suites passed after 0.001 seconds.
 ```
 
@@ -85,9 +89,10 @@ Process verification passed through the script.
 2. Verified pill expands downwards on hover to show song details, mini artwork, and media controls.
 3. Verified clicking play/pause/skip on both the mini-player and main panel detailed widget commands Apple Music correctly.
 4. Verified main panel displays a detailed player card for the Music module.
+5. Verified lyrics bubble button expands/collapses the player card to display plain, synced, loading, or unavailable lyrics correctly and beautifully.
 
 ## Next Task
 
-Task 6 is complete. The next task in the approved implementation plan is:
-- Task 7: "Implement Lyrics Fallback States".
-  - Add the lyrics state model and UI fallback states (synced lyrics, plain lyrics, and no lyrics) inside the main panel music widget.
+Task 7 is complete. The next task in the approved implementation plan is:
+- Task 8: "Implement Clipboard Privacy Filters".
+  - Create filtering rules that reject sensitive-looking text before persistence (e.g. passwords, tokens, API keys).

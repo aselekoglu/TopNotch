@@ -5,13 +5,33 @@ import Combine
 public final class MusicStateStore: ObservableObject, @unchecked Sendable {
     public static let shared = MusicStateStore(provider: AppleMusicProvider())
 
-    @Published public var currentTrack: NowPlayingTrack?
+    @Published public var currentTrack: NowPlayingTrack? {
+        didSet {
+            guard oldValue != currentTrack else { return }
+            lyricsFetchTask?.cancel()
+            lyricsFetchTask = nil
+            
+            if currentTrack == nil {
+                self.lyricsState = .unavailable
+            } else {
+                self.lyricsState = .loading
+                lyricsFetchTask = Task {
+                    await fetchLyrics()
+                }
+            }
+        }
+    }
     @Published public var playbackState: PlaybackState = .unknown
+    @Published public var lyricsState: LyricsState = .unavailable
+    @Published public var showLyrics: Bool = false
     
     private let provider: MediaProvider
+    private let lyricsProvider: LyricsProvider
+    private var lyricsFetchTask: Task<Void, Never>?
     
-    public init(provider: MediaProvider) {
+    public init(provider: MediaProvider, lyricsProvider: LyricsProvider = AppleMusicLyricsProvider()) {
         self.provider = provider
+        self.lyricsProvider = lyricsProvider
         
         // Start observing notifications using AppleMusicProbe.shared
         AppleMusicProbe.shared.startObservingNotifications { [weak self] metadata, state in
@@ -38,6 +58,22 @@ public final class MusicStateStore: ObservableObject, @unchecked Sendable {
                 self.playbackState = .unknown
                 self.currentTrack = nil
             }
+        }
+    }
+    
+    public func fetchLyrics() async {
+        guard let track = currentTrack else {
+            self.lyricsState = .unavailable
+            return
+        }
+        
+        do {
+            let state = try await lyricsProvider.fetchLyrics(for: track)
+            guard !Task.isCancelled else { return }
+            self.lyricsState = state
+        } catch {
+            guard !Task.isCancelled else { return }
+            self.lyricsState = .unavailable
         }
     }
     
