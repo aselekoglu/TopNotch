@@ -90,7 +90,7 @@ struct ClipboardPanelView: View {
     private var entriesList: some View {
         ScrollView(.vertical, showsIndicators: true) {
             LazyVStack(spacing: 7) {
-                ForEach(filteredEntries.prefix(3)) { entry in
+                ForEach(filteredEntries.prefix(2)) { entry in
                     ClipboardItemRow(
                         entry: entry,
                         isRecentlyCopied: recentlyCopiedID == entry.id,
@@ -100,7 +100,7 @@ struct ClipboardPanelView: View {
             }
             .padding(.vertical, 1)
         }
-        .frame(maxHeight: 150)
+        .frame(maxHeight: 90)
     }
 
     private var emptyState: some View {

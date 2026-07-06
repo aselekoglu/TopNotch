@@ -27,7 +27,7 @@ struct SettingsView: View {
                 .tag(2)
         }
         .padding(20)
-        .frame(width: 480, height: 350)
+        .frame(width: 480, height: 420)
     }
     
     private var interactionView: some View {
@@ -102,6 +102,47 @@ struct SettingsView: View {
             Text("Determines where the Top Notch overlay and dropdown main panel appear on launch.")
                 .font(.caption)
                 .foregroundColor(.secondary)
+
+            Divider()
+
+            Text("Notch Calibration")
+                .font(.headline)
+
+            VStack(spacing: 8) {
+                HStack {
+                    Text("Notch Width:")
+                        .font(.subheadline)
+                        .frame(width: 90, alignment: .leading)
+                    Slider(value: Binding(
+                        get: { store.settings.customNotchWidth },
+                        set: { newValue in
+                            var updated = store.settings
+                            updated.customNotchWidth = newValue
+                            store.update(settings: updated)
+                        }
+                    ), in: 100...400, step: 5)
+                    Text("\(Int(store.settings.customNotchWidth)) pt")
+                        .font(.system(.body, design: .monospaced))
+                        .frame(width: 60, alignment: .trailing)
+                }
+
+                HStack {
+                    Text("Notch Height:")
+                        .font(.subheadline)
+                        .frame(width: 90, alignment: .leading)
+                    Slider(value: Binding(
+                        get: { store.settings.customNotchHeight },
+                        set: { newValue in
+                            var updated = store.settings
+                            updated.customNotchHeight = newValue
+                            store.update(settings: updated)
+                        }
+                    ), in: 10...80, step: 1)
+                    Text("\(Int(store.settings.customNotchHeight)) pt")
+                        .font(.system(.body, design: .monospaced))
+                        .frame(width: 60, alignment: .trailing)
+                }
+            }
         }
     }
     
@@ -195,7 +236,7 @@ struct SettingsView: View {
                     }
                 }
             }
-            .padding(.trailing, 8) // prevent horizontal scrollbar overlap
+            .padding(.trailing, 8)
         }
     }
     

@@ -7,12 +7,14 @@ public struct AppleMusicTrackMetadata: Equatable, Sendable {
     public let artist: String
     public let album: String
     public let duration: Double
+    public let playerPosition: Double
     
-    public init(title: String, artist: String, album: String, duration: Double) {
+    public init(title: String, artist: String, album: String, duration: Double, playerPosition: Double = 0.0) {
         self.title = title
         self.artist = artist
         self.album = album
         self.duration = duration
+        self.playerPosition = playerPosition
     }
 }
 
@@ -57,7 +59,8 @@ public final class AppleMusicProbe: @unchecked Sendable {
                 set trkArtist to artist of trk
                 set trkAlbum to album of trk
                 set trkDuration to duration of trk
-                return "playing|" & trkName & "|" & trkArtist & "|" & trkAlbum & "|" & trkDuration
+                set trkPos to player position
+                return "playing|" & trkName & "|" & trkArtist & "|" & trkAlbum & "|" & trkDuration & "|" & trkPos
             else if player state is paused then
                 try
                     set trk to current track
@@ -65,12 +68,13 @@ public final class AppleMusicProbe: @unchecked Sendable {
                     set trkArtist to artist of trk
                     set trkAlbum to album of trk
                     set trkDuration to duration of trk
-                    return "paused|" & trkName & "|" & trkArtist & "|" & trkAlbum & "|" & trkDuration
+                    set trkPos to player position
+                    return "paused|" & trkName & "|" & trkArtist & "|" & trkAlbum & "|" & trkDuration & "|" & trkPos
                 on error
-                    return "paused|unknown|unknown|unknown|0.0"
+                    return "paused|unknown|unknown|unknown|0.0|0.0"
                 end try
             else
-                return "stopped|unknown|unknown|unknown|0.0"
+                return "stopped|unknown|unknown|unknown|0.0|0.0"
             end if
         end tell
         """
@@ -107,6 +111,7 @@ public final class AppleMusicProbe: @unchecked Sendable {
         let artist = parts[2]
         let album = parts[3]
         let duration = Double(parts[4]) ?? 0.0
+        let playerPosition = parts.count >= 6 ? (Double(parts[5]) ?? 0.0) : 0.0
         
         let state: AppleMusicPlaybackState
         switch stateStr {
@@ -120,7 +125,13 @@ public final class AppleMusicProbe: @unchecked Sendable {
             return (nil, state)
         }
         
-        let metadata = AppleMusicTrackMetadata(title: title, artist: artist, album: album, duration: duration)
+        let metadata = AppleMusicTrackMetadata(
+            title: title,
+            artist: artist,
+            album: album,
+            duration: duration,
+            playerPosition: playerPosition
+        )
         return (metadata, state)
     }
     
@@ -154,7 +165,7 @@ public final class AppleMusicProbe: @unchecked Sendable {
             default: state = .unknown
             }
             
-            let metadata = name.isEmpty ? nil : AppleMusicTrackMetadata(title: name, artist: artist, album: album, duration: durationSec)
+            let metadata = name.isEmpty ? nil : AppleMusicTrackMetadata(title: name, artist: artist, album: album, duration: durationSec, playerPosition: 0.0)
             
             guard let self = self else { return }
             self.lock.lock()

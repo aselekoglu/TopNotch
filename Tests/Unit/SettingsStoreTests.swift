@@ -33,6 +33,8 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertTrue(store.settings.excludedAppBundleIdentifiers.isEmpty)
         XCTAssertEqual(store.settings.notesMaxPinnedCount, 8)
         XCTAssertEqual(store.settings.targetDisplayIndex, 0)
+        XCTAssertEqual(store.settings.customNotchWidth, 180.0)
+        XCTAssertEqual(store.settings.customNotchHeight, 24.0)
     }
     
     func testUpdatingSettingsFiresPublisher() {
@@ -70,6 +72,8 @@ final class SettingsStoreTests: XCTestCase {
         newSettings.excludedAppBundleIdentifiers = ["com.apple.Terminal"]
         newSettings.notesMaxPinnedCount = 10
         newSettings.targetDisplayIndex = 2
+        newSettings.customNotchWidth = 250.0
+        newSettings.customNotchHeight = 35.0
         
         store.update(settings: newSettings)
         

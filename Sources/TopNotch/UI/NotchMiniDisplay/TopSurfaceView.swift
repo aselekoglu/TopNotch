@@ -1,7 +1,9 @@
 import SwiftUI
+import Combine
 import TopNotchCore
 
 /// A SwiftUI view representing the top surface pill (virtual island or physical notch overlay).
+/// Adapts its size and layout dynamically based on physical/virtual notch calibration sliders.
 struct TopSurfaceView: View {
     /// The top safe area inset of the current display. If > 0, we assume the screen has a physical notch.
     let safeAreaTopInset: CGFloat
@@ -20,6 +22,9 @@ struct TopSurfaceView: View {
     @State private var isHoveredPlayMini = false
     @State private var isHoveredNextMini = false
     
+    @State private var elapsed: Double = 0.0
+    let timer = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
+    
     /// Returns true if the target display screen has a physical notch.
     var hasNotch: Bool {
         if settingsStore.settings.forceVirtualIslandStyle {
@@ -33,10 +38,12 @@ struct TopSurfaceView: View {
         let playing = stateStore.playbackState == .playing
         let hoverEnabled = settingsStore.settings.enableHoverAffordance
         let expansionEnabled = settingsStore.settings.enableLiveActivityExpansion
+        let baseWidth = CGFloat(settingsStore.settings.customNotchWidth)
+        
         if playing {
-            return (isHovered && expansionEnabled) ? 360 : 300
+            return (isHovered && expansionEnabled) ? max(360, baseWidth + 160) : max(300, baseWidth + 100)
         }
-        return (isHovered && hoverEnabled) ? 300 : 240
+        return (isHovered && hoverEnabled) ? max(300, baseWidth + 60) : baseWidth
     }
     
     /// Computes the target height of the pill based on notch presence, playback, and hover state.
@@ -44,20 +51,21 @@ struct TopSurfaceView: View {
         let playing = stateStore.playbackState == .playing
         let hoverEnabled = settingsStore.settings.enableHoverAffordance
         let expansionEnabled = settingsStore.settings.enableLiveActivityExpansion
+        let baseHeight = CGFloat(settingsStore.settings.customNotchHeight)
         
         if playing {
             let expanded = isHovered && expansionEnabled
             if hasNotch {
-                return expanded ? 82 : max(52, min(64, safeAreaTopInset))
+                return expanded ? baseHeight + 70 : baseHeight + 36
             } else {
-                return expanded ? 74 : 46
+                return expanded ? baseHeight + 60 : baseHeight + 32
             }
         } else {
             let expanded = isHovered && hoverEnabled
             if hasNotch {
-                return expanded ? 58 : max(44, min(56, safeAreaTopInset))
+                return expanded ? baseHeight + 24 : baseHeight
             } else {
-                return expanded ? 54 : 38
+                return expanded ? baseHeight + 20 : baseHeight
             }
         }
     }
@@ -76,7 +84,6 @@ struct TopSurfaceView: View {
         if hasNotch {
             return 0
         } else {
-            // (24pt standard menu bar - 22pt idle height) / 2 = 1pt to center vertically
             return 1
         }
     }
@@ -138,8 +145,13 @@ struct TopSurfaceView: View {
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .onReceive(timer) { _ in
+            if stateStore.playbackState == .playing {
+                self.elapsed = stateStore.playerPosition
+            }
+        }
     }
-
+    
     private var surfaceShape: UnevenRoundedRectangle {
         if hasNotch {
             return UnevenRoundedRectangle(
@@ -152,58 +164,98 @@ struct TopSurfaceView: View {
                 style: .continuous
             )
         }
-
-        return UnevenRoundedRectangle(cornerRadii: RectangleCornerRadii(topLeading: targetCornerRadius, bottomLeading: targetCornerRadius, bottomTrailing: targetCornerRadius, topTrailing: targetCornerRadius), style: .continuous)
-    }
-
-    private func compactNowPlaying(_ track: NowPlayingTrack) -> some View {
-        HStack(spacing: 0) {
-            albumBadge(size: 34, cornerRadius: 9)
-                .padding(.leading, 18)
-
-            Spacer()
-
-            equalizerIcon
-                .scaleEffect(0.72)
-                .padding(.trailing, 20)
-        }
-        .overlay(
-            Text(track.title)
-                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .foregroundColor(.white.opacity(0.0))
-                .lineLimit(1)
+        return UnevenRoundedRectangle(
+            cornerRadii: RectangleCornerRadii(
+                topLeading: targetCornerRadius,
+                bottomLeading: targetCornerRadius,
+                bottomTrailing: targetCornerRadius,
+                topTrailing: targetCornerRadius
+            ),
+            style: .continuous
         )
     }
-
-    private func expandedNowPlaying(_ track: NowPlayingTrack) -> some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 10) {
-                albumBadge(size: 42, cornerRadius: 10)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(track.title)
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+    
+    private func compactNowPlaying(_ track: NowPlayingTrack) -> some View {
+        HStack(spacing: 8) {
+            albumBadge(size: max(20, targetHeight - 8), cornerRadius: 6)
+                .padding(.leading, 8)
+            
+            VStack(alignment: .leading, spacing: 1) {
+                Text(track.title)
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                
+                if case .synced(let lines) = stateStore.lyricsState, !lines.isEmpty {
+                    let activeIndex = findActiveIndex(for: lines, time: elapsed)
+                    Text(lines[activeIndex].text)
+                        .font(.system(size: 9, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.6))
                         .lineLimit(1)
-
+                } else {
                     Text(track.artist)
-                        .font(.system(size: 10, weight: .medium, design: .rounded))
-                        .foregroundColor(.white.opacity(0.56))
+                        .font(.system(size: 9, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.5))
                         .lineLimit(1)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .layoutPriority(1)
-
-                equalizerIcon
-                    .scaleEffect(0.76)
             }
-
+            
+            Spacer()
+            
+            equalizerIcon
+                .scaleEffect(0.65)
+                .padding(.trailing, 10)
+        }
+    }
+    
+    private func expandedNowPlaying(_ track: NowPlayingTrack) -> some View {
+        VStack(spacing: 6) {
             HStack(spacing: 8) {
+                albumBadge(size: 32, cornerRadius: 6)
+                
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(track.title)
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    
+                    Text(track.artist)
+                        .font(.system(size: 9, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.6))
+                        .lineLimit(1)
+                }
+                
+                Spacer()
+                
+                equalizerIcon
+                    .scaleEffect(0.7)
+            }
+            
+            if case .synced(let lines) = stateStore.lyricsState, !lines.isEmpty {
+                let activeIndex = findActiveIndex(for: lines, time: elapsed)
+                VStack(spacing: 1) {
+                    Text(lines[activeIndex].text)
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    if activeIndex < lines.count - 1 {
+                        Text(lines[activeIndex + 1].text)
+                            .font(.system(size: 8, weight: .medium, design: .rounded))
+                            .foregroundColor(.white.opacity(0.5))
+                            .lineLimit(1)
+                    }
+                }
+                .frame(height: 22)
+            } else {
+                Spacer().frame(height: 22)
+            }
+            
+            HStack(spacing: 12) {
                 miniControlButton(systemName: "backward.fill", isHovered: isHoveredPrevMini) {
                     stateStore.previousTrack()
                 }
                 .onHover { isHoveredPrevMini = $0 }
-
+                
                 miniControlButton(
                     systemName: stateStore.playbackState == .playing ? "pause.fill" : "play.fill",
                     isHovered: isHoveredPlayMini
@@ -211,41 +263,58 @@ struct TopSurfaceView: View {
                     stateStore.playpause()
                 }
                 .onHover { isHoveredPlayMini = $0 }
-
+                
                 miniControlButton(systemName: "forward.fill", isHovered: isHoveredNextMini) {
                     stateStore.nextTrack()
                 }
                 .onHover { isHoveredNextMini = $0 }
-
+                
                 Spacer()
-
-                Text(track.album.isEmpty ? "Now Playing" : track.album)
-                    .font(.system(size: 10, weight: .medium, design: .rounded))
-                    .foregroundColor(.white.opacity(0.42))
-                    .lineLimit(1)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
     }
-
+    
     private func compactIdleSurface(title: String) -> some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             Circle()
-                .fill(isHovered ? Color.green : Color.white.opacity(0.32))
-                .frame(width: 7, height: 7)
-
+                .fill(isHovered ? Color.green : Color.white.opacity(0.35))
+                .frame(width: 6, height: 6)
+            
             if !title.isEmpty {
                 Text(title)
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundColor(.white.opacity(0.88))
                     .lineLimit(1)
             }
         }
         .padding(.horizontal, 16)
     }
-
+    
     private func albumBadge(size: CGFloat, cornerRadius: CGFloat) -> some View {
+        Group {
+            if let urlString = stateStore.currentTrack?.artworkUrl, let url = URL(string: urlString) {
+                AsyncImage(url: url) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    placeholderArtwork(size: size, cornerRadius: cornerRadius)
+                }
+            } else {
+                placeholderArtwork(size: size, cornerRadius: cornerRadius)
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .stroke(Color.white.opacity(0.16), lineWidth: 1)
+        )
+    }
+    
+    private func placeholderArtwork(size: CGFloat, cornerRadius: CGFloat) -> some View {
         ZStack(alignment: .bottomTrailing) {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill(
@@ -264,25 +333,9 @@ struct TopSurfaceView: View {
                         .font(.system(size: size * 0.36, weight: .semibold))
                         .foregroundColor(.white.opacity(0.86))
                 )
-                .overlay(
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .stroke(Color.white.opacity(0.16), lineWidth: 1)
-                )
-                .frame(width: size, height: size)
-
-            RoundedRectangle(cornerRadius: size * 0.16, style: .continuous)
-                .fill(Color(red: 1.0, green: 0.17, blue: 0.32))
-                .frame(width: size * 0.34, height: size * 0.34)
-                .overlay(
-                    Image(systemName: "music.note")
-                        .font(.system(size: size * 0.18, weight: .bold))
-                        .foregroundColor(.white)
-                )
-                .offset(x: size * 0.09, y: size * 0.09)
         }
-        .frame(width: size, height: size)
     }
-
+    
     private var equalizerIcon: some View {
         HStack(alignment: .bottom, spacing: 4) {
             Capsule().frame(width: 4, height: 22)
@@ -292,7 +345,7 @@ struct TopSurfaceView: View {
         .foregroundColor(Color(red: 0.76, green: 0.82, blue: 1.0))
         .shadow(color: Color(red: 0.45, green: 0.55, blue: 1.0).opacity(0.35), radius: 5)
     }
-
+    
     private func miniControlButton(
         systemName: String,
         isHovered: Bool,
@@ -307,5 +360,17 @@ struct TopSurfaceView: View {
                 .clipShape(Circle())
         }
         .buttonStyle(.plain)
+    }
+    
+    private func findActiveIndex(for lines: [LyricsLine], time: Double) -> Int {
+        var activeIndex = 0
+        for (index, line) in lines.enumerated() {
+            if line.timestamp <= time {
+                activeIndex = index
+            } else {
+                break
+            }
+        }
+        return activeIndex
     }
 }
