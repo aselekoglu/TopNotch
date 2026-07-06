@@ -69,14 +69,14 @@
 **Description:** Prototype and document the supported way to detect Apple Music playback and lyrics availability.
 
 **Acceptance criteria:**
-- [ ] Current track detection approach is proven or rejected with evidence.
-- [ ] Lyrics/synced lyrics official access limitations are documented.
-- [ ] Minimum macOS version recommendation is updated.
-- [ ] Liquid Glass/macOS design API availability is checked against the selected SDK where relevant to the music surface.
+- [x] Current track detection approach is proven or rejected with evidence.
+- [x] Lyrics/synced lyrics official access limitations are documented.
+- [x] Minimum macOS version recommendation is updated.
+- [x] Liquid Glass/macOS design API availability is checked against the selected SDK where relevant to the music surface.
 
 **Verification:**
-- [ ] Manual probe against Apple Music.
-- [ ] Documentation added to `Docs/technical-risks.md`.
+- [x] Manual probe against Apple Music.
+- [x] Documentation added to `docs/technical-risks.md`.
 
 **Dependencies:** Task 1
 
@@ -91,13 +91,13 @@
 **Description:** Add a provider abstraction and first Apple Music implementation for now-playing metadata and playback state.
 
 **Acceptance criteria:**
-- [ ] `MediaProvider` protocol exists.
-- [ ] Apple Music provider returns current track metadata when available.
-- [ ] Music module handles unavailable/inactive state.
+- [x] `MediaProvider` protocol exists.
+- [x] Apple Music provider returns current track metadata when available.
+- [x] Music module handles unavailable/inactive state.
 
 **Verification:**
-- [ ] Unit tests for provider state mapping.
-- [ ] Manual check with Apple Music playing and paused.
+- [x] Unit tests for provider state mapping.
+- [x] Manual check with Apple Music playing and paused.
 
 **Dependencies:** Task 4
 
