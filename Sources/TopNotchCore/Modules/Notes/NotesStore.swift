@@ -9,11 +9,15 @@ public final class NotesStore: ObservableObject, @unchecked Sendable {
     @Published public private(set) var scratchpadMarkdown: String = ""
     @Published public private(set) var pinnedNotes: [Note] = []
 
-    public let maxPinnedNotes: Int
+    private let customMaxPinnedNotes: Int?
     public let storageURL: URL
 
-    public init(maxPinnedNotes: Int = 8, storageURL: URL? = nil) {
-        self.maxPinnedNotes = max(0, maxPinnedNotes)
+    public var maxPinnedNotes: Int {
+        customMaxPinnedNotes ?? SettingsStore.shared.settings.notesMaxPinnedCount
+    }
+
+    public init(maxPinnedNotes: Int? = nil, storageURL: URL? = nil) {
+        self.customMaxPinnedNotes = maxPinnedNotes.map { max(0, $0) }
         self.storageURL = storageURL ?? Self.defaultStorageURL()
         load()
     }

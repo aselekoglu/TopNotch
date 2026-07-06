@@ -259,13 +259,13 @@
 **Description:** Add local settings persistence for modules, display behavior, interaction behavior, clipboard retention, and notes preferences.
 
 **Acceptance criteria:**
-- [ ] Settings persist across app relaunch.
-- [ ] Module visibility/order can be saved.
-- [ ] Clipboard retention and exclusions can be saved.
+- [x] Settings persist across app relaunch.
+- [x] Module visibility/order can be saved.
+- [x] Clipboard retention and exclusions can be saved.
 
 **Verification:**
-- [ ] Unit tests for settings defaults and persistence.
-- [ ] Manual check: change settings, relaunch app, confirm retained.
+- [x] Unit tests for settings defaults and persistence.
+- [x] Manual check: change settings, relaunch app, confirm retained.
 
 **Dependencies:** Tasks 3, 9, 11
 

@@ -12,22 +12,38 @@ public final class ClipboardStore: ObservableObject, @unchecked Sendable {
     @Published public var entries: [ClipboardEntry] = []
     @Published public private(set) var lastRejectionReason: ClipboardPrivacyRejectionReason?
 
-    public let maxItems: Int
-    public let maxAgeDays: Int
-    public let privacyFilter: ClipboardPrivacyFilter
+    private let customMaxItems: Int?
+    private let customMaxAgeDays: Int?
+    private let customPrivacyFilter: ClipboardPrivacyFilter?
     public let storageURL: URL
+
+    public var maxItems: Int {
+        customMaxItems ?? SettingsStore.shared.settings.clipboardMaxItemsCount
+    }
+
+    public var maxAgeDays: Int {
+        customMaxAgeDays ?? SettingsStore.shared.settings.clipboardMaxAgeDays
+    }
+
+    public var privacyFilter: ClipboardPrivacyFilter {
+        customPrivacyFilter ?? ClipboardPrivacyFilter(
+            policy: ClipboardPolicy(
+                excludedSourceAppBundleIdentifiers: SettingsStore.shared.settings.excludedAppBundleIdentifiers
+            )
+        )
+    }
 
     // MARK: - Init
 
     public init(
-        maxItems: Int = 100,
-        maxAgeDays: Int = 30,
-        privacyFilter: ClipboardPrivacyFilter = ClipboardPrivacyFilter(),
+        maxItems: Int? = nil,
+        maxAgeDays: Int? = nil,
+        privacyFilter: ClipboardPrivacyFilter? = nil,
         storageURL: URL? = nil
     ) {
-        self.maxItems = maxItems
-        self.maxAgeDays = maxAgeDays
-        self.privacyFilter = privacyFilter
+        self.customMaxItems = maxItems
+        self.customMaxAgeDays = maxAgeDays
+        self.customPrivacyFilter = privacyFilter
         self.storageURL = storageURL ?? Self.defaultStorageURL()
         load()
     }
