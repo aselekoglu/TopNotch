@@ -8,12 +8,28 @@ final class MockMediaProvider: MediaProvider, @unchecked Sendable {
     var mockTrack: NowPlayingTrack?
     var mockState: PlaybackState = .unknown
     
+    var playpauseCalled = false
+    var nextTrackCalled = false
+    var previousTrackCalled = false
+    
     func isRunning() -> Bool {
         return mockIsRunning
     }
     
     func queryCurrentTrack() async throws -> (track: NowPlayingTrack?, state: PlaybackState) {
         return (mockTrack, mockState)
+    }
+    
+    func playpause() async throws {
+        playpauseCalled = true
+    }
+    
+    func nextTrack() async throws {
+        nextTrackCalled = true
+    }
+    
+    func previousTrack() async throws {
+        previousTrackCalled = true
     }
 }
 

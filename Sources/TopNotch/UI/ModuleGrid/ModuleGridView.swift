@@ -17,7 +17,11 @@ struct ModuleGridView: View {
                         .tracking(1)
                     
                     ForEach(activeModules) { module in
-                        ActiveModuleRow(module: module)
+                        if module.identifier == .music {
+                            MusicWidgetView()
+                        } else {
+                            ActiveModuleRow(module: module)
+                        }
                     }
                 }
             }

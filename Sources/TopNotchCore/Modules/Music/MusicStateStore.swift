@@ -3,6 +3,8 @@ import Combine
 
 @MainActor
 public final class MusicStateStore: ObservableObject, @unchecked Sendable {
+    public static let shared = MusicStateStore(provider: AppleMusicProvider())
+
     @Published public var currentTrack: NowPlayingTrack?
     @Published public var playbackState: PlaybackState = .unknown
     
@@ -35,6 +37,39 @@ public final class MusicStateStore: ObservableObject, @unchecked Sendable {
             } catch {
                 self.playbackState = .unknown
                 self.currentTrack = nil
+            }
+        }
+    }
+    
+    public func playpause() {
+        Task {
+            do {
+                try await provider.playpause()
+                refreshState()
+            } catch {
+                print("[MusicStateStore] Play/Pause command failed: \(error)")
+            }
+        }
+    }
+    
+    public func nextTrack() {
+        Task {
+            do {
+                try await provider.nextTrack()
+                refreshState()
+            } catch {
+                print("[MusicStateStore] Next Track command failed: \(error)")
+            }
+        }
+    }
+    
+    public func previousTrack() {
+        Task {
+            do {
+                try await provider.previousTrack()
+                refreshState()
+            } catch {
+                print("[MusicStateStore] Previous Track command failed: \(error)")
             }
         }
     }

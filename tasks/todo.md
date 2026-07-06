@@ -112,13 +112,13 @@
 **Description:** Connect now-playing state to the persistent mini display and full panel music detail view.
 
 **Acceptance criteria:**
-- [ ] Mini display shows active track when Apple Music is playing.
-- [ ] Hover can expand live activity preview.
-- [ ] Click opens full panel with music detail module.
+- [x] Mini display shows active track when Apple Music is playing.
+- [x] Hover can expand live activity preview.
+- [x] Click opens full panel with music detail module.
 
 **Verification:**
-- [ ] Manual check: play a song, hover, click, and confirm expected UI.
-- [ ] Snapshot or view tests where feasible.
+- [x] Manual check: play a song, hover, click, and confirm expected UI.
+- [x] Snapshot or view tests where feasible.
 
 **Dependencies:** Tasks 2, 3, 5
 

@@ -4,7 +4,7 @@ Last updated: 2026-07-06
 
 ## Summary
 
-Task 5, "Implement Apple Music Provider Boundary and Now-Playing State", has been implemented and verified. We migrated the hybrid Apple Music probe to the core library target, defined the mockable `MediaProvider` protocol boundary, implemented the active `AppleMusicProvider`, and established the `@MainActor` isolated `MusicStateStore` class to publish track details and playback states to SwiftUI using Combine.
+Task 6, "Implement Mini Display and Music Detail Panel", has been implemented and verified. The top-center surface pill now binds to `MusicStateStore` to dynamically update its size and text when Apple Music is playing. On hover, it expands smoothly into a Live Activity mini-player with interactive play/pause and skip controls (acting via AppleScript). The Music module row in the main dropdown panel has been updated to a premium player card showcasing custom artwork gradients, song details, and media control buttons.
 
 The app currently:
 
@@ -12,11 +12,13 @@ The app currently:
 - Runs as an accessory/menu-bar utility without a Dock icon.
 - Displays a status item menu with Settings and Quit actions.
 - Renders a top-center floating visual pill (`NSPanel` with level `.statusBar`) on the target screen.
-- Handles hover animations on the pill using a fluid spring transition in SwiftUI (compact state expands on hover).
+- Dynamically expands the pill's dimensions and shows track info (`🎵 Title - Artist`) during music playback.
+- Displays a Live Activity mini-player card on hover during playback, supporting previous/next and play/pause controls.
 - Aligns a dropdown dashboard panel (`NSPanel` with level `.statusBar` and frosted glass background) directly below the pill when clicked.
 - Listens to global/local events to dismiss the panel when clicking outside, safeguarding against double-toggling.
 - Features a registry-driven list showing active modules (Music, Clipboard, Notes) and planned modules (Calendar, Timer, File Drop, Commands, Agents) styled as coming-soon tiles.
-- Runs 12 unit tests successfully across shell configuration, screen calculations, registry operations, and now-playing state observation.
+- Incorporates an interactive full player card for the Music module within the main panel.
+- Runs 15 unit tests successfully across shell configuration, screen calculations, registry operations, state stores, and player controls.
 
 ## Important Files
 
@@ -35,23 +37,25 @@ The app currently:
 - `Sources/TopNotch/App/AppDelegate.swift`: AppKit lifecycle and window integration.
 - `Sources/TopNotch/App/StatusItemController.swift`: Menu-bar status item.
 - `Sources/TopNotch/UI/NotchMiniDisplay/TopSurfaceWindowController.swift`: Floating pill window controller.
-- `Sources/TopNotch/UI/NotchMiniDisplay/TopSurfaceView.swift`: SwiftUI pill with hover spring animations and tap callbacks.
+- `Sources/TopNotch/UI/NotchMiniDisplay/TopSurfaceView.swift`: SwiftUI pill with hover spring animations, playback state bindings, and expanded Live Activity widgets.
 - `Sources/TopNotch/UI/Panel/MainPanelWindowController.swift`: Dropdown window controller with auto-dismiss behavior.
 - `Sources/TopNotch/UI/Panel/MainPanelView.swift`: SwiftUI dashboard with frosted glass visual effects.
-- `Sources/TopNotch/UI/ModuleGrid/ModuleGridView.swift`: Grid representing active rows and planned tiles.
+- `Sources/TopNotch/UI/ModuleGrid/ModuleGridView.swift`: Grid representing active rows, custom widgets, and planned tiles.
+- `Sources/TopNotch/UI/ModuleGrid/MusicWidgetView.swift`: Detailed music player layout for the main panel.
 - `Sources/TopNotch/UI/Settings/SettingsWindowController.swift`: Settings window host.
 - `Sources/TopNotch/UI/Settings/SettingsView.swift`: Settings content.
 - `Tests/Unit/AppShellConfigurationTests.swift`: App shell unit tests.
 - `Tests/Unit/NotchGeometryCalculatorTests.swift`: Geometry calculation unit tests.
 - `Tests/Unit/ModuleRegistryTests.swift`: Registry management unit tests.
 - `Tests/Unit/MusicStateStoreTests.swift`: Music state publisher and provider mock tests.
+- `Tests/Unit/MediaControlTests.swift`: Unit tests for playback controls forwarding.
 - `docs/technical-risks.md`: Apple Music integration risks, permissions, and lyrics feasibility document.
 - `script/build_and_run.sh`: Build, bundle, launch, and verification script.
 
 ## Verification History
 
 ### Unit Tests
-A new test suite was added for `MusicStateStore` using a mock provider to verify initial refresh, state mapping, and distributed notifications.
+A new test suite `MediaControlTests` was added to verify control commands are forwarded and trigger correct state refreshes.
 
 ```bash
 COPYFILE_DISABLE=1 DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer swift test --scratch-path /tmp/topnotch-swiftpm-build-orchestrator
@@ -59,7 +63,7 @@ COPYFILE_DISABLE=1 DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer
 
 Latest result:
 ```text
-Executed 12 tests, with 0 failures (0 unexpected) in 0.006 (0.010) seconds
+Executed 15 tests, with 0 failures (0 unexpected) in 0.003 (0.005) seconds
 ✔ Test run with 0 tests in 0 suites passed after 0.001 seconds.
 ```
 
@@ -77,11 +81,13 @@ Process verification passed through the script.
 ```
 
 ### Manual Checks Completed
-1. Verified `AppleMusicProbe` correctly detects when Apple Music is closed or running.
-2. Verified `MusicStateStore` updates published track and state details when simulated notification triggers.
+1. Verified pill expands to a wider shape showing `🎵 Title - Artist` when music is playing.
+2. Verified pill expands downwards on hover to show song details, mini artwork, and media controls.
+3. Verified clicking play/pause/skip on both the mini-player and main panel detailed widget commands Apple Music correctly.
+4. Verified main panel displays a detailed player card for the Music module.
 
 ## Next Task
 
-Task 5 is complete. The next task in the approved implementation plan is:
-- Task 6: "Implement Mini Display and Music Detail Panel".
-  - Connect now-playing state from `MusicStateStore` to the persistent mini display and full panel music detail view.
+Task 6 is complete. The next task in the approved implementation plan is:
+- Task 7: "Implement Lyrics Fallback States".
+  - Add the lyrics state model and UI fallback states (synced lyrics, plain lyrics, and no lyrics) inside the main panel music widget.

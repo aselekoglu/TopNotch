@@ -1,4 +1,5 @@
 import SwiftUI
+import TopNotchCore
 
 /// A SwiftUI view representing the top surface pill (virtual island or physical notch overlay).
 struct TopSurfaceView: View {
@@ -11,30 +12,51 @@ struct TopSurfaceView: View {
     /// Tracks whether the mouse cursor is currently hovering over the pill.
     @State private var isHovered = false
     
+    @ObservedObject private var stateStore = MusicStateStore.shared
+    
+    // Hover states for mini media buttons
+    @State private var isHoveredPrevMini = false
+    @State private var isHoveredPlayMini = false
+    @State private var isHoveredNextMini = false
+    
     /// Returns true if the target display screen has a physical notch.
     var hasNotch: Bool {
         safeAreaTopInset > 0
     }
     
-    /// Computes the target width of the pill based on notch presence and hover state.
+    /// Computes the target width of the pill based on notch presence, playback, and hover state.
     var targetWidth: CGFloat {
+        let playing = stateStore.playbackState == .playing
         if hasNotch {
-            // Physical notch dimensions: 200pt base width, expands slightly to 240pt on hover.
-            return isHovered ? 240 : 200
+            if playing {
+                return isHovered ? 280 : 220
+            } else {
+                return isHovered ? 240 : 200
+            }
         } else {
-            // Virtual island: 160pt base width, expands to 200pt on hover.
-            return isHovered ? 200 : 160
+            if playing {
+                return isHovered ? 260 : 200
+            } else {
+                return isHovered ? 200 : 160
+            }
         }
     }
     
-    /// Computes the target height of the pill based on notch presence and hover state.
+    /// Computes the target height of the pill based on notch presence, playback, and hover state.
     var targetHeight: CGFloat {
+        let playing = stateStore.playbackState == .playing
         if hasNotch {
-            // Under compact state, it matches the physical notch height (e.g. 32pt).
-            return isHovered ? 48 : safeAreaTopInset
+            if playing {
+                return isHovered ? 68 : safeAreaTopInset
+            } else {
+                return isHovered ? 48 : safeAreaTopInset
+            }
         } else {
-            // Under compact state, it is 22pt (sits inside 24pt menu bar), expands to 38pt on hover.
-            return isHovered ? 38 : 22
+            if playing {
+                return isHovered ? 68 : 22
+            } else {
+                return isHovered ? 38 : 22
+            }
         }
     }
     
@@ -61,6 +83,7 @@ struct TopSurfaceView: View {
     }
     
     var body: some View {
+        let playing = stateStore.playbackState == .playing
         VStack(spacing: 0) {
             Spacer().frame(height: topPadding)
             
@@ -70,20 +93,128 @@ struct TopSurfaceView: View {
                     .fill(Color.black)
                 
                 // Content container
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(isHovered ? Color.green : Color.white.opacity(0.3))
-                        .frame(width: 6, height: 6)
-                    
+                if playing {
                     if isHovered {
-                        Text("Top Notch")
-                            .font(.system(size: 11, weight: .medium, design: .rounded))
-                            .foregroundColor(.white)
-                            .lineLimit(1)
-                            .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                        // Expanded Live Activity
+                        if let track = stateStore.currentTrack {
+                            VStack(spacing: 0) {
+                                if hasNotch {
+                                    Spacer().frame(height: safeAreaTopInset)
+                                } else {
+                                    Spacer()
+                                }
+                                
+                                HStack(spacing: 8) {
+                                    // Mini artwork
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .fill(
+                                                LinearGradient(
+                                                    colors: [Color.purple.opacity(0.8), Color.blue.opacity(0.8)],
+                                                    startPoint: .topLeading,
+                                                    endPoint: .bottomTrailing
+                                                )
+                                            )
+                                            .frame(width: 24, height: 24)
+                                        Image(systemName: "music.note")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(.white)
+                                    }
+                                    
+                                    VStack(alignment: .leading, spacing: 0) {
+                                        Text(track.title)
+                                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                                            .foregroundColor(.white)
+                                            .lineLimit(1)
+                                        Text(track.artist)
+                                            .font(.system(size: 9, design: .rounded))
+                                            .foregroundColor(.white.opacity(0.6))
+                                            .lineLimit(1)
+                                    }
+                                    .frame(maxWidth: 110, alignment: .leading)
+                                    
+                                    Spacer(minLength: 4)
+                                    
+                                    // Miniature media controls
+                                    HStack(spacing: 8) {
+                                        Button(action: {
+                                            stateStore.previousTrack()
+                                        }) {
+                                            Image(systemName: "backward.fill")
+                                                .font(.system(size: 9))
+                                                .foregroundColor(.white)
+                                                .frame(width: 22, height: 22)
+                                                .background(Color.white.opacity(isHoveredPrevMini ? 0.2 : 0.05))
+                                                .clipShape(Circle())
+                                        }
+                                        .buttonStyle(.plain)
+                                        .onHover { h in isHoveredPrevMini = h }
+                                        
+                                        Button(action: {
+                                            stateStore.playpause()
+                                        }) {
+                                            Image(systemName: stateStore.playbackState == .playing ? "pause.fill" : "play.fill")
+                                                .font(.system(size: 9))
+                                                .foregroundColor(.white)
+                                                .frame(width: 22, height: 22)
+                                                .background(Color.white.opacity(isHoveredPlayMini ? 0.25 : 0.1))
+                                                .clipShape(Circle())
+                                        }
+                                        .buttonStyle(.plain)
+                                        .onHover { h in isHoveredPlayMini = h }
+                                        
+                                        Button(action: {
+                                            stateStore.nextTrack()
+                                        }) {
+                                            Image(systemName: "forward.fill")
+                                                .font(.system(size: 9))
+                                                .foregroundColor(.white)
+                                                .frame(width: 22, height: 22)
+                                                .background(Color.white.opacity(isHoveredNextMini ? 0.2 : 0.05))
+                                                .clipShape(Circle())
+                                        }
+                                        .buttonStyle(.plain)
+                                        .onHover { h in isHoveredNextMini = h }
+                                    }
+                                }
+                                .padding(.horizontal, 12)
+                                
+                                Spacer()
+                            }
+                        }
+                    } else {
+                        // Playing but not hovered
+                        if let track = stateStore.currentTrack {
+                            Text("🎵 \(track.title) - \(track.artist)")
+                                .font(.system(size: 11, design: .rounded))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                                .padding(.horizontal, 10)
+                        } else {
+                            Text("🎵 Music")
+                                .font(.system(size: 11, design: .rounded))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                                .padding(.horizontal, 10)
+                        }
                     }
+                } else {
+                    // Not playing
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(isHovered ? Color.green : Color.white.opacity(0.3))
+                            .frame(width: 6, height: 6)
+                        
+                        if isHovered {
+                            Text("Top Notch")
+                                .font(.system(size: 11, weight: .medium, design: .rounded))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                        }
+                    }
+                    .padding(.horizontal, 10)
                 }
-                .padding(.horizontal, 10)
             }
             .frame(width: targetWidth, height: targetHeight)
             .overlay(
@@ -93,6 +224,7 @@ struct TopSurfaceView: View {
             .shadow(color: .black.opacity(isHovered ? 0.4 : 0.15), radius: isHovered ? 8 : 3, y: isHovered ? 4 : 1.5)
             // A fluid spring animation for organic Liquid Glass physical feel
             .animation(.spring(response: 0.28, dampingFraction: 0.75, blendDuration: 0), value: isHovered)
+            .animation(.spring(response: 0.28, dampingFraction: 0.75, blendDuration: 0), value: stateStore.playbackState)
             .onHover { hovering in
                 isHovered = hovering
             }
