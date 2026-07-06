@@ -4,32 +4,27 @@ Last updated: 2026-07-06
 
 ### Summary
  
-Tasks 8, 9, 10, 11, 13, 14, and 15 are implemented and verified at the code/build/test level. The settings, interaction, and display features now include:
-- A redesigned `SettingsView` using a modern `TabView` containing Interaction, Display, and Modules preference tabs.
-- Dynamic settings bindings for `enableHoverAffordance`, `enableLiveActivityExpansion`, `forceVirtualIslandStyle`, and `targetDisplayIndex`.
-- Target display picker dynamically listing all connected screens using `NSScreen.screens`.
-- Module settings tab with reordering (via "▲" and "▼" buttons) and visibility toggles bound to SettingsStore.
-- Planned modules section with Coming Soon badges, and Phase 2 Read-Only message for Agents.
-- Refined planned modules tiles in the grid with a 0.25 opacity treatment, custom "Agents (Read-only)" name, and explanatory help tooltips.
-- Integration of the settings inside `TopSurfaceView` to dynamically control physical notch vs virtual island layout (`forceVirtualIslandStyle`), hover spring scaling (`enableHoverAffordance`), and Live Activity expanded player views (`enableLiveActivityExpansion`).
-- A pure `ClipboardPrivacyFilter` + `ClipboardPolicy` boundary that rejects credential, token/API key, 2FA/OTP, and Luhn-valid payment card-like content before persistence.
-- A text-only local clipboard history store (`ClipboardStore`) with retention defaults of 100 items or 30 days.
-- A local Markdown notes store (`NotesStore`) for scratchpad and pinned notes.
-- A global `AppSettings` and `SettingsStore` for local preferences persistence (stored under Application Support).
+Tasks 1 through 15 are implemented and verified at the code/build/test level. The entire UI/UX has been overhauled to match the custom paper sketch drawing:
+- A custom `NotchPanelShape` that curves around the physical camera notch at the top, and extends downward in the center as a U-shaped tab to host the synced lyrics.
+- Main expanded panel uses a 3-column layout:
+  - Column 1: `NotchCalendarView` showing the current week timeline and upcoming mock events.
+  - Column 2: `NotchMediaPlayerColumn` with larger artwork, track details, playback controls, and a synchronized real-time progress slider.
+  - Column 3: `ClipboardPanelView` showing recent clipboard items and search.
+- Navigation tabs at the top:
+  - Left side: "Overview" and "Media".
+  - Right side: "Agents" and "Tools".
+  - Rightmost: Settings gear icon.
+- Synced lyrics stack (`NotchLyricsView`) shown inside the U-shaped tab at the bottom of the panel, showing previous, active (bold), and next lyric lines.
+- Compact now-playing state in `TopSurfaceView` updated to show the 3 lines of lyrics directly under the notch, with the compact album badge on the left and visual equalizer waves on the right.
+- App continues to build as an accessory/menu-bar utility without a Dock icon, with preferences stored locally under Application Support.
  
 The app currently:
  
 - Builds a `TopNotch` executable and stages a real `dist/Top Notch.app` bundle through `script/build_and_run.sh`.
-- Runs as an accessory/menu-bar utility without a Dock icon.
-- Displays a status item menu with Settings and Quit actions.
-- Renders a top-center floating visual pill (`NSPanel` with level `.statusBar`) on the target screen.
-- Dynamically expands the pill's dimensions and shows track info (`🎵 Title - Artist`) during music playback.
-- Displays a Live Activity mini-player card on hover during playback, supporting previous/next and play/pause controls.
-- Aligns a dropdown dashboard panel (`NSPanel` with level `.statusBar` and frosted glass background) directly below the pill when clicked.
-- Listens to global/local events to dismiss the panel when clicking outside, safeguarding against double-toggling.
-- Features a registry-driven list showing active modules (Music, Clipboard, Notes) and planned modules (Calendar, Timer, File Drop, Commands, Agents) styled as coming-soon tiles.
-- Incorporates an interactive full player card for the Music module within the main panel, now supporting metadata non-truncation constraints and an expandable lyrics viewer.
-- Runs 69 unit tests successfully across shell configuration, screen calculations, registry operations, state stores, player controls, lyrics provider/state stores, clipboard privacy/history behavior, notes persistence, settings store, SettingsView UI integration, and module settings/reordering integration.
+- Renders the new top-center floating visual pill (`NSPanel` with level `.statusBar`) on the target screen.
+- Dynamically expands the pill's height and shows compact scrolling lyrics during playback.
+- Aligns the updated 840x260 dropdown dashboard panel (`NSPanel` with level `.statusBar` and frosted glass background) directly below the pill when clicked.
+- Runs 69 unit tests successfully across all modules, layouts, settings, and stores.
 
 ## Important Files
 
@@ -60,9 +55,13 @@ The app currently:
 - `Sources/TopNotch/App/AppDelegate.swift`: AppKit lifecycle and window integration.
 - `Sources/TopNotch/App/StatusItemController.swift`: Menu-bar status item.
 - `Sources/TopNotch/UI/NotchMiniDisplay/TopSurfaceWindowController.swift`: Floating pill window controller.
-- `Sources/TopNotch/UI/NotchMiniDisplay/TopSurfaceView.swift`: SwiftUI pill with hover spring animations, playback state bindings, and expanded Live Activity widgets.
-- `Sources/TopNotch/UI/Panel/MainPanelWindowController.swift`: Dropdown window controller with auto-dismiss behavior.
-- `Sources/TopNotch/UI/Panel/MainPanelView.swift`: SwiftUI dashboard with frosted glass visual effects.
+- `Sources/TopNotch/UI/NotchMiniDisplay/TopSurfaceView.swift`: SwiftUI pill with hover spring animations, playback state bindings, and compact lyrics.
+- `Sources/TopNotch/UI/Panel/MainPanelWindowController.swift`: Dropdown window controller with auto-dismiss behavior and updated 840x260 frame.
+- `Sources/TopNotch/UI/Panel/MainPanelView.swift`: SwiftUI dashboard with custom flared-notch shape and 3 columns.
+- `Sources/TopNotch/UI/Panel/NotchPanelShape.swift`: Custom SwiftUI Shape for the U-shaped panel.
+- `Sources/TopNotch/UI/Panel/NotchCalendarView.swift`: Mock Calendar widget.
+- `Sources/TopNotch/UI/Panel/NotchMediaPlayerColumn.swift`: Custom media player widget column.
+- `Sources/TopNotch/UI/Panel/NotchLyricsView.swift`: Mini lyrics stack for the U-tab.
 - `Sources/TopNotch/UI/ModuleGrid/ModuleGridView.swift`: Grid representing active rows, custom widgets, and planned tiles.
 - `Sources/TopNotch/UI/ModuleGrid/MusicWidgetView.swift`: Detailed music player layout for the main panel, featuring the lyrics card expansion.
 - `Sources/TopNotch/UI/Settings/SettingsWindowController.swift`: Settings window host.
@@ -86,51 +85,16 @@ The app currently:
 
 ## Verification History
 
-## Unit Tests
-The clipboard domain now has two test suites:
-- `ClipboardPrivacyFilterTests` verifies ordinary text acceptance, credential/token/2FA/payment-card rejection, Luhn false-positive avoidance, maximum-length boundaries, and excluded source app handling.
-- `ClipboardStoreTests` verifies accepted text storage, sensitive text rejection before persistence, retention trimming by count/age, persistence roundtrips, clear/remove operations, rejection state publishing, and duplicate copy-back suppression.
-- `NotesStoreTests` verifies scratchpad Markdown persistence, pin/update/unpin/delete persistence, pinned note ordering and limits, missing-file startup, and roundtrip persistence.
-- `SettingsStoreTests` verifies settings defaults, update publishers, custom path persistence roundtrips, and defaults reset.
-- `SettingsUIIntegrationTests` verifies SettingsView renders and binds correctly to SettingsStore.
-- `ModuleSettingsIntegrationTests` verifies active module visibility toggle, direct set visibility, and reordering behavior with SettingsStore integration.
-
-```bash
-COPYFILE_DISABLE=1 DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer swift test --scratch-path /tmp/topnotch-swiftpm-build-orchestrator
-```
-
-Latest result:
-```text
-Executed 69 tests, with 0 failures (0 unexpected) in 0.647 (0.655) seconds
-✔ Test run with 0 tests in 0 suites passed after 0.001 seconds.
-```
+### Unit Tests
+Executed 69 tests with 0 failures (0 unexpected) successfully.
 
 ### Staging Verification
 The app bundle launch/process verification:
-
 ```bash
 TOPNOTCH_SWIFTPM_SCRATCH_PATH=/tmp/topnotch-swiftpm-run-build-orchestrator ./script/build_and_run.sh --verify
 ```
-
-Latest result:
+Result:
 ```text
 Build complete.
 Process verification passed through the script.
 ```
-
-### Manual Checks Completed
-1. Verified pill expands to a wider shape showing `🎵 Title - Artist` when music is playing.
-2. Verified pill expands downwards on hover to show song details, mini artwork, and media controls.
-3. Verified clicking play/pause/skip on both the mini-player and main panel detailed widget commands Apple Music correctly.
-4. Verified main panel displays a detailed player card for the Music module.
-5. Verified lyrics bubble button expands/collapses the player card to display plain, synced, loading, or unavailable lyrics correctly and beautifully.
-6. Verified main panel sizes and corner curves (28pt) are optimized so that the artwork, buttons, and settings/mirror circle buttons are never clipped by the corners.
-7. Verified notes panel write (plain text markdown editor) and read (native AttributedString styled preview) modes render and persist scratchpad markdown correctly.
-8. Verified notes pinning horizontal list, copying notes raw source markdown, and unpinning/deleting notes function end-to-end.
-
-### Manual Checks Pending
-None. All MVP manual checks and acceptance criteria have been successfully executed and completed.
-
-## Project Status
-
-The approved MVP implementation plan has been successfully completed in its entirety. The app builds, runs as a menu-bar utility, displays a notch overlay/virtual island with Live Activity hover controls, opens a detailed frosted glass dashboard, and supports local music, clipboard, and notes workflows with comprehensive settings persistence and Apple Design Guidelines compliance. Ready for implementation review!
