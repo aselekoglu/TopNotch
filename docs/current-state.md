@@ -4,10 +4,13 @@ Last updated: 2026-07-06
 
 ### Summary
  
-Tasks 8, 9, 10, 11, 13, and 14 are implemented and verified at the code/build/test level. The settings, interaction, and display features now include:
-- A redesigned `SettingsView` using a modern `TabView` containing Interaction and Display preference tabs.
+Tasks 8, 9, 10, 11, 13, 14, and 15 are implemented and verified at the code/build/test level. The settings, interaction, and display features now include:
+- A redesigned `SettingsView` using a modern `TabView` containing Interaction, Display, and Modules preference tabs.
 - Dynamic settings bindings for `enableHoverAffordance`, `enableLiveActivityExpansion`, `forceVirtualIslandStyle`, and `targetDisplayIndex`.
 - Target display picker dynamically listing all connected screens using `NSScreen.screens`.
+- Module settings tab with reordering (via "▲" and "▼" buttons) and visibility toggles bound to SettingsStore.
+- Planned modules section with Coming Soon badges, and Phase 2 Read-Only message for Agents.
+- Refined planned modules tiles in the grid with a 0.25 opacity treatment, custom "Agents (Read-only)" name, and explanatory help tooltips.
 - Integration of the settings inside `TopSurfaceView` to dynamically control physical notch vs virtual island layout (`forceVirtualIslandStyle`), hover spring scaling (`enableHoverAffordance`), and Live Activity expanded player views (`enableLiveActivityExpansion`).
 - A pure `ClipboardPrivacyFilter` + `ClipboardPolicy` boundary that rejects credential, token/API key, 2FA/OTP, and Luhn-valid payment card-like content before persistence.
 - A text-only local clipboard history store (`ClipboardStore`) with retention defaults of 100 items or 30 days.
@@ -26,7 +29,7 @@ The app currently:
 - Listens to global/local events to dismiss the panel when clicking outside, safeguarding against double-toggling.
 - Features a registry-driven list showing active modules (Music, Clipboard, Notes) and planned modules (Calendar, Timer, File Drop, Commands, Agents) styled as coming-soon tiles.
 - Incorporates an interactive full player card for the Music module within the main panel, now supporting metadata non-truncation constraints and an expandable lyrics viewer.
-- Runs 66 unit tests successfully across shell configuration, screen calculations, registry operations, state stores, player controls, lyrics provider/state stores, clipboard privacy/history behavior, notes persistence, settings store, and SettingsView UI integration.
+- Runs 69 unit tests successfully across shell configuration, screen calculations, registry operations, state stores, player controls, lyrics provider/state stores, clipboard privacy/history behavior, notes persistence, settings store, SettingsView UI integration, and module settings/reordering integration.
 
 ## Important Files
 
@@ -77,6 +80,7 @@ The app currently:
 - `Tests/Unit/NotesStoreTests.swift`: Unit tests for scratchpad persistence, pin/update/unpin/delete behavior, pinned note limits, and persistence roundtrips.
 - `Tests/Unit/SettingsStoreTests.swift`: Unit tests for setting defaults and persistence.
 - `Tests/Unit/SettingsUIIntegrationTests.swift`: Unit/integration tests for SettingsView rendering and SettingsStore integration.
+- `Tests/Unit/ModuleSettingsIntegrationTests.swift`: Unit/integration tests for active module visibility toggling, direct setting, and reordering.
 - `docs/technical-risks.md`: Apple Music integration risks, permissions, and lyrics feasibility document.
 - `script/build_and_run.sh`: Build, bundle, launch, and verification script.
 
@@ -89,6 +93,7 @@ The clipboard domain now has two test suites:
 - `NotesStoreTests` verifies scratchpad Markdown persistence, pin/update/unpin/delete persistence, pinned note ordering and limits, missing-file startup, and roundtrip persistence.
 - `SettingsStoreTests` verifies settings defaults, update publishers, custom path persistence roundtrips, and defaults reset.
 - `SettingsUIIntegrationTests` verifies SettingsView renders and binds correctly to SettingsStore.
+- `ModuleSettingsIntegrationTests` verifies active module visibility toggle, direct set visibility, and reordering behavior with SettingsStore integration.
 
 ```bash
 COPYFILE_DISABLE=1 DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer swift test --scratch-path /tmp/topnotch-swiftpm-build-orchestrator
@@ -96,7 +101,7 @@ COPYFILE_DISABLE=1 DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer
 
 Latest result:
 ```text
-Executed 66 tests, with 0 failures (0 unexpected) in 0.643 (0.649) seconds
+Executed 69 tests, with 0 failures (0 unexpected) in 0.647 (0.655) seconds
 ✔ Test run with 0 tests in 0 suites passed after 0.001 seconds.
 ```
 
@@ -128,6 +133,6 @@ Process verification passed through the script.
 
 ## Next Task
 
-Task 14 is complete. The next task in the approved implementation plan is:
-- Task 15: "Implement Module Settings and Planned Tiles Polish".
-  - Finish module list settings and the compact planned module presentation in the main panel.
+Task 15 is complete. The next task in the approved implementation plan is:
+- Task 16: "Add MVP Verification Pass and Docs Update".
+  - Run full MVP verification, document known limitations, update the spec/plan with any changed decisions, and prepare for implementation review.

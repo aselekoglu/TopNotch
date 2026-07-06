@@ -115,7 +115,7 @@ struct PlannedModuleTile: View {
                 .background(Color.white.opacity(0.05))
                 .cornerRadius(8)
             
-            Text(module.name)
+            Text(module.identifier == .agents ? "Agents (Read-only)" : module.name)
                 .font(.system(size: 10, weight: .medium, design: .rounded))
                 .foregroundColor(.white.opacity(0.32))
                 .lineLimit(1)
@@ -128,5 +128,7 @@ struct PlannedModuleTile: View {
             RoundedRectangle(cornerRadius: 10)
                 .stroke(Color.white.opacity(0.055), lineWidth: 1)
         )
+        .opacity(0.25)
+        .help(module.identifier == .agents ? "Phase 2 - Read-only agentic execution placeholder. No active controls." : "")
     }
 }

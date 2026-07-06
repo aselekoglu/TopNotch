@@ -1,6 +1,7 @@
 import Foundation
 
 /// Central registry for managing module layout order, visibility, and active vs. planned states.
+@MainActor
 public final class ModuleRegistry: @unchecked Sendable {
     /// Shared registry instance.
     public static let shared = ModuleRegistry()
@@ -28,14 +29,44 @@ public final class ModuleRegistry: @unchecked Sendable {
     public func getModules() -> [WorkflowModule] {
         lock.lock()
         defer { lock.unlock() }
-        return modules
+        let visibleIds = SettingsStore.shared.settings.visibleModuleIdentifiers
+        let activeMods = modules.filter { !$0.isPlannedOnly }
+        let plannedMods = modules.filter { $0.isPlannedOnly }
+        
+        var orderedActive = [WorkflowModule]()
+        for rawId in visibleIds {
+            if let mod = activeMods.first(where: { $0.identifier.rawValue == rawId }) {
+                var updated = mod
+                updated.isVisible = true
+                orderedActive.append(updated)
+            }
+        }
+        for mod in activeMods {
+            if !visibleIds.contains(mod.identifier.rawValue) {
+                var updated = mod
+                updated.isVisible = false
+                orderedActive.append(updated)
+            }
+        }
+        return orderedActive + plannedMods
     }
     
     /// Returns only modules that are active (not planned-only) and visible.
     public func getActiveVisibleModules() -> [WorkflowModule] {
         lock.lock()
         defer { lock.unlock() }
-        return modules.filter { !$0.isPlannedOnly && $0.isVisible }
+        let visibleIds = SettingsStore.shared.settings.visibleModuleIdentifiers
+        let activeMods = modules.filter { !$0.isPlannedOnly }
+        
+        var result = [WorkflowModule]()
+        for rawId in visibleIds {
+            if let mod = activeMods.first(where: { $0.identifier.rawValue == rawId }) {
+                var updated = mod
+                updated.isVisible = true
+                result.append(updated)
+            }
+        }
+        return result
     }
     
     /// Returns only planned modules that are visible.
@@ -52,6 +83,18 @@ public final class ModuleRegistry: @unchecked Sendable {
         if let index = modules.firstIndex(where: { $0.identifier == identifier }) {
             modules[index].isVisible.toggle()
         }
+        
+        var ids = SettingsStore.shared.settings.visibleModuleIdentifiers
+        if let index = ids.firstIndex(of: identifier.rawValue) {
+            ids.remove(at: index)
+        } else {
+            ids.append(identifier.rawValue)
+        }
+        
+        var updated = SettingsStore.shared.settings
+        updated.visibleModuleIdentifiers = ids
+        SettingsStore.shared.update(settings: updated)
+        SettingsStore.shared.save()
     }
     
     /// Sets the visibility of a given module type.
@@ -61,6 +104,22 @@ public final class ModuleRegistry: @unchecked Sendable {
         if let index = modules.firstIndex(where: { $0.identifier == identifier }) {
             modules[index].isVisible = visible
         }
+        
+        var ids = SettingsStore.shared.settings.visibleModuleIdentifiers
+        if visible {
+            if !ids.contains(identifier.rawValue) {
+                ids.append(identifier.rawValue)
+            }
+        } else {
+            if let index = ids.firstIndex(of: identifier.rawValue) {
+                ids.remove(at: index)
+            }
+        }
+        
+        var updated = SettingsStore.shared.settings
+        updated.visibleModuleIdentifiers = ids
+        SettingsStore.shared.update(settings: updated)
+        SettingsStore.shared.save()
     }
     
     /// Reorders the registry modules to match the ordering in the input array.
@@ -86,6 +145,15 @@ public final class ModuleRegistry: @unchecked Sendable {
         }
         
         self.modules = updated
+        
+        let rawValues = newOrder
+            .filter { !$0.isPlannedOnly && $0.isVisible }
+            .map { $0.identifier.rawValue }
+        
+        var currentSettings = SettingsStore.shared.settings
+        currentSettings.visibleModuleIdentifiers = rawValues
+        SettingsStore.shared.update(settings: currentSettings)
+        SettingsStore.shared.save()
     }
     
     /// Resets the registry state back to default configuration values (useful for tests).

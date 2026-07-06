@@ -19,9 +19,15 @@ struct SettingsView: View {
                     Label("Display", systemImage: "display")
                 }
                 .tag(1)
+            
+            modulesView
+                .tabItem {
+                    Label("Modules", systemImage: "square.grid.2x2.fill")
+                }
+                .tag(2)
         }
         .padding(20)
-        .frame(width: 480, height: 300)
+        .frame(width: 480, height: 350)
     }
     
     private var interactionView: some View {
@@ -97,5 +103,108 @@ struct SettingsView: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
+    }
+    
+    private var modulesView: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Active Modules")
+                    .font(.headline)
+                
+                let activeModules = ModuleRegistry.shared.getModules().filter { !$0.isPlannedOnly }
+                VStack(spacing: 8) {
+                    ForEach(Array(activeModules.enumerated()), id: \.element.identifier) { index, module in
+                        HStack(spacing: 12) {
+                            Image(systemName: module.iconName)
+                                .font(.system(size: 14))
+                                .foregroundColor(.primary)
+                                .frame(width: 24, height: 24)
+                                .background(Color.primary.opacity(0.1))
+                                .cornerRadius(6)
+                            
+                            Text(module.name)
+                                .font(.body)
+                            
+                            Spacer()
+                            
+                            Toggle("", isOn: Binding(
+                                get: {
+                                    store.settings.visibleModuleIdentifiers.contains(module.identifier.rawValue)
+                                },
+                                set: { isVisible in
+                                    ModuleRegistry.shared.setVisibility(for: module.identifier, visible: isVisible)
+                                }
+                            ))
+                            .labelsHidden()
+                            
+                            Button(action: {
+                                moveModule(index: index, direction: -1)
+                            }) {
+                                Text("▲")
+                            }
+                            .disabled(index == 0)
+                            
+                            Button(action: {
+                                moveModule(index: index, direction: 1)
+                            }) {
+                                Text("▼")
+                            }
+                            .disabled(index == activeModules.count - 1)
+                        }
+                    }
+                }
+                
+                Divider()
+                
+                Text("Planned Modules")
+                    .font(.headline)
+                
+                let plannedModules = ModuleRegistry.shared.getModules().filter { $0.isPlannedOnly }
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(plannedModules, id: \.identifier) { module in
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 12) {
+                                Image(systemName: module.iconName)
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.secondary)
+                                    .frame(width: 24, height: 24)
+                                    .background(Color.secondary.opacity(0.1))
+                                    .cornerRadius(6)
+                                
+                                Text(module.name)
+                                    .font(.body)
+                                    .foregroundColor(.secondary)
+                                
+                                Spacer()
+                                
+                                Text("Coming Soon")
+                                    .font(.caption)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.secondary.opacity(0.2))
+                                    .cornerRadius(4)
+                                    .foregroundColor(.secondary)
+                            }
+                            if module.identifier == .agents {
+                                Text("Phase 2 - Read-Only preview. No active execution.")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                    .padding(.leading, 36)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.trailing, 8) // prevent horizontal scrollbar overlap
+        }
+    }
+    
+    private func moveModule(index: Int, direction: Int) {
+        var activeModules = ModuleRegistry.shared.getModules().filter { !$0.isPlannedOnly }
+        let targetIndex = index + direction
+        guard targetIndex >= 0 && targetIndex < activeModules.count else { return }
+        
+        activeModules.swapAt(index, targetIndex)
+        ModuleRegistry.shared.updateModulesOrder(to: activeModules)
     }
 }

@@ -302,13 +302,13 @@
 **Description:** Finish module list settings and the compact planned module presentation in the main panel.
 
 **Acceptance criteria:**
-- [ ] Settings shows active and planned modules.
-- [ ] Main panel Planned section is compact and clearly disabled.
-- [ ] Planned Agents tile communicates read-only future direction without active behavior.
+- [x] Settings shows active and planned modules.
+- [x] Main panel Planned section is compact and clearly disabled.
+- [x] Planned Agents tile communicates read-only future direction without active behavior.
 
 **Verification:**
-- [ ] Manual check: planned modules visible in panel and settings.
-- [ ] Manual check: disabled tiles do not imply working behavior.
+- [x] Manual check: planned modules visible in panel and settings.
+- [x] Manual check: disabled tiles do not imply working behavior.
 
 **Dependencies:** Tasks 3, 13
 

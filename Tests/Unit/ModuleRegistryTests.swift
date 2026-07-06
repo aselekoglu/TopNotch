@@ -1,16 +1,17 @@
 import XCTest
 @testable import TopNotchCore
 
+@MainActor
 final class ModuleRegistryTests: XCTestCase {
     
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
         ModuleRegistry.shared.resetToDefaults()
     }
     
-    override func tearDown() {
+    override func tearDown() async throws {
         ModuleRegistry.shared.resetToDefaults()
-        super.tearDown()
+        try await super.tearDown()
     }
     
     func testDefaultModulesState() {
