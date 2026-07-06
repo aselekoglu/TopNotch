@@ -9,10 +9,8 @@ final class TopSurfaceWindowController: NSWindowController {
     
     init(onTapPill: @escaping () -> Void) {
         self.onTapPill = onTapPill
-        // Set standard dimensions for the window container
-        // Width of 300 and height of 80 gives enough space for hover expansion without clipping.
-        let windowWidth: CGFloat = 300
-        let windowHeight: CGFloat = 80
+        let windowWidth: CGFloat = 420
+        let windowHeight: CGFloat = 104
         
         let panel = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: windowWidth, height: windowHeight),

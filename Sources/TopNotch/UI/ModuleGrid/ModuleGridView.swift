@@ -7,18 +7,22 @@ struct ModuleGridView: View {
     let plannedModules: [WorkflowModule]
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            // Active MVP Modules
+        VStack(alignment: .leading, spacing: 16) {
             if !activeModules.isEmpty {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("ACTIVE MODULES")
+                VStack(alignment: .leading, spacing: 9) {
+                    Text("Active")
                         .font(.system(size: 10, weight: .bold, design: .rounded))
-                        .foregroundStyle(.secondary)
-                        .tracking(1)
+                        .foregroundColor(.white.opacity(0.52))
+                        .textCase(.uppercase)
+                        .tracking(1.4)
                     
                     ForEach(activeModules) { module in
                         if module.identifier == .music {
                             MusicWidgetView()
+                        } else if module.identifier == .clipboard {
+                            ClipboardPanelView()
+                        } else if module.identifier == .notes {
+                            NotesPanelView()
                         } else {
                             ActiveModuleRow(module: module)
                         }
@@ -26,13 +30,13 @@ struct ModuleGridView: View {
                 }
             }
             
-            // Planned Future Modules Section
             if !plannedModules.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("PLANNED")
+                    Text("Planned")
                         .font(.system(size: 10, weight: .bold, design: .rounded))
-                        .foregroundStyle(.secondary)
-                        .tracking(1)
+                        .foregroundColor(.white.opacity(0.46))
+                        .textCase(.uppercase)
+                        .tracking(1.4)
                     
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                         ForEach(plannedModules) { module in
@@ -76,7 +80,7 @@ struct ActiveModuleRow: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(Color.white.opacity(0.06))
+        .background(Color.white.opacity(0.055))
         .cornerRadius(10)
         .overlay(
             RoundedRectangle(cornerRadius: 10)
@@ -105,25 +109,24 @@ struct PlannedModuleTile: View {
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: module.iconName)
-                .font(.system(size: 16))
-                .foregroundColor(.gray)
-                .frame(width: 32, height: 32)
-                .background(Color.white.opacity(0.04))
+                .font(.system(size: 15))
+                .foregroundColor(.white.opacity(0.30))
+                .frame(width: 30, height: 30)
+                .background(Color.white.opacity(0.05))
                 .cornerRadius(8)
             
             Text(module.name)
                 .font(.system(size: 10, weight: .medium, design: .rounded))
-                .foregroundColor(.gray)
+                .foregroundColor(.white.opacity(0.32))
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
-        .background(Color.white.opacity(0.02))
+        .background(Color.white.opacity(0.035))
         .cornerRadius(10)
         .overlay(
             RoundedRectangle(cornerRadius: 10)
-                .stroke(Color.white.opacity(0.04), lineWidth: 1)
+                .stroke(Color.white.opacity(0.055), lineWidth: 1)
         )
-        .opacity(0.75)
     }
 }

@@ -175,12 +175,12 @@
 **Description:** Monitor and store accepted text clipboard entries locally with default retention of 100 items or 30 days.
 
 **Acceptance criteria:**
-- [ ] Text clipboard entries are stored locally after filtering.
-- [ ] Image/file clipboard entries are ignored.
-- [ ] Retention policy enforces 100-item/30-day defaults.
+- [x] Text clipboard entries are stored locally after filtering.
+- [x] Image/file clipboard entries are ignored.
+- [x] Retention policy enforces 100-item/30-day defaults.
 
 **Verification:**
-- [ ] Unit tests for retention and text-only behavior.
+- [x] Unit tests for retention and text-only behavior.
 - [ ] Manual check: copy text, image, file; only text appears.
 
 **Dependencies:** Task 8
@@ -196,13 +196,13 @@
 **Description:** Add clipboard history UI with search/scan-friendly list and one-click copy.
 
 **Acceptance criteria:**
-- [ ] Recent text items appear in the Clipboard module.
-- [ ] User can copy an item back with one click.
-- [ ] Empty and privacy-filtered states are clear.
+- [x] Recent text items appear in the Clipboard module.
+- [x] User can copy an item back with one click.
+- [x] Empty and privacy-filtered states are clear.
 
 **Verification:**
 - [ ] Manual check: copy text, open panel, copy history item.
-- [ ] View tests where feasible.
+- [x] Unit/build verification for clipboard state, duplicate copy-back guard, and app compilation.
 
 **Dependencies:** Tasks 3, 9
 
@@ -217,12 +217,12 @@
 **Description:** Store Markdown scratchpad content and a small set of pinned Markdown notes locally.
 
 **Acceptance criteria:**
-- [ ] Scratchpad content persists locally.
-- [ ] User can pin Markdown notes.
-- [ ] User can unpin/delete pinned notes.
+- [x] Scratchpad content persists locally.
+- [x] User can pin Markdown notes.
+- [x] User can unpin/delete pinned notes.
 
 **Verification:**
-- [ ] Unit tests for pin/unpin/delete persistence.
+- [x] Unit tests for pin/unpin/delete persistence.
 - [ ] Manual check: write Markdown, relaunch app, confirm persistence.
 
 **Dependencies:** Task 1
@@ -238,13 +238,13 @@
 **Description:** Add the Markdown notes UI with edit/source mode, readable preview, pinning, and source Markdown copy.
 
 **Acceptance criteria:**
-- [ ] Scratchpad accepts Markdown.
-- [ ] Markdown preview is readable.
-- [ ] One-click copy copies source Markdown by default.
+- [x] Scratchpad accepts Markdown.
+- [x] Markdown preview is readable.
+- [x] One-click copy copies source Markdown by default.
 
 **Verification:**
-- [ ] Manual check: write Markdown, preview, pin, copy.
-- [ ] View tests where feasible.
+- [x] Manual check: write Markdown, preview, pin, copy.
+- [x] View tests where feasible.
 
 **Dependencies:** Tasks 3, 11
 

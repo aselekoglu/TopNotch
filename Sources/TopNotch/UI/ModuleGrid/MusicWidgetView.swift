@@ -10,9 +10,16 @@ struct MusicWidgetView: View {
     @State private var isPulsing = false
 
     var body: some View {
+        if stateStore.currentTrack == nil {
+            inactiveMusicCard
+        } else {
+            activeMusicCard
+        }
+    }
+
+    private var activeMusicCard: some View {
         VStack(spacing: 0) {
             HStack(spacing: 16) {
-                // Artwork Placeholder
                 ZStack {
                     RoundedRectangle(cornerRadius: 12)
                         .fill(
@@ -38,7 +45,6 @@ struct MusicWidgetView: View {
                         .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
                 }
                 
-                // Track Metadata
                 VStack(alignment: .leading, spacing: 3) {
                     if let track = stateStore.currentTrack {
                         Text(track.title)
@@ -55,14 +61,6 @@ struct MusicWidgetView: View {
                             .font(.system(size: 10, design: .rounded))
                             .foregroundColor(.white.opacity(0.4))
                             .lineLimit(1)
-                    } else {
-                        Text("No Music Active")
-                            .font(.system(size: 13, weight: .semibold, design: .rounded))
-                            .foregroundColor(.white.opacity(0.6))
-                        
-                        Text("Start playing in Music app")
-                            .font(.system(size: 11, design: .rounded))
-                            .foregroundColor(.white.opacity(0.3))
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -70,9 +68,7 @@ struct MusicWidgetView: View {
                 
                 Spacer()
                 
-                // Media Controls
                 HStack(spacing: 12) {
-                    // Backward Button
                     Button(action: {
                         stateStore.previousTrack()
                     }) {
@@ -91,7 +87,6 @@ struct MusicWidgetView: View {
                         }
                     }
                     
-                    // Play / Pause Button
                     Button(action: {
                         stateStore.playpause()
                     }) {
@@ -110,7 +105,6 @@ struct MusicWidgetView: View {
                         }
                     }
                     
-                    // Forward Button
                     Button(action: {
                         stateStore.nextTrack()
                     }) {
@@ -129,7 +123,6 @@ struct MusicWidgetView: View {
                         }
                     }
 
-                    // Lyrics Toggle Button
                     Button(action: {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
                             stateStore.showLyrics.toggle()
@@ -162,7 +155,57 @@ struct MusicWidgetView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(Color.white.opacity(0.06))
+        .background(Color.white.opacity(0.055))
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.white.opacity(0.09), lineWidth: 1)
+        )
+    }
+
+    private var inactiveMusicCard: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.22, green: 0.10, blue: 0.40),
+                                Color(red: 0.06, green: 0.05, blue: 0.11)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 42, height: 42)
+
+                Image(systemName: "music.note")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.80))
+            }
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Music")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white.opacity(0.92))
+
+                Text("No track playing")
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundColor(.white.opacity(0.46))
+            }
+
+            Spacer()
+
+            Image(systemName: "waveform")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(.white.opacity(0.28))
+                .frame(width: 30, height: 30)
+                .background(Color.white.opacity(0.06))
+                .clipShape(Circle())
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color.white.opacity(0.05))
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)

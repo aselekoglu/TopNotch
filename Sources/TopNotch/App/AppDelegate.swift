@@ -1,4 +1,5 @@
 import AppKit
+import TopNotchCore
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -6,9 +7,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsWindowController: SettingsWindowController?
     private var topSurfaceWindowController: TopSurfaceWindowController?
     private var mainPanelWindowController: MainPanelWindowController?
+    private var clipboardStore: ClipboardStore?
+    private var clipboardMonitor: ClipboardMonitor?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+
+        let clipboardStore = ClipboardStore.shared
+        self.clipboardStore = clipboardStore
+        let clipboardMonitor = ClipboardMonitor(store: clipboardStore)
+        self.clipboardMonitor = clipboardMonitor
+        clipboardMonitor.startMonitoring()
 
         let settingsWindowController = SettingsWindowController()
         self.settingsWindowController = settingsWindowController
@@ -37,6 +46,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 NSApp.terminate(nil)
             }
         )
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        clipboardMonitor?.stopMonitoring()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

@@ -27,19 +27,10 @@ struct TopSurfaceView: View {
     /// Computes the target width of the pill based on notch presence, playback, and hover state.
     var targetWidth: CGFloat {
         let playing = stateStore.playbackState == .playing
-        if hasNotch {
-            if playing {
-                return isHovered ? 280 : 220
-            } else {
-                return isHovered ? 240 : 200
-            }
-        } else {
-            if playing {
-                return isHovered ? 260 : 200
-            } else {
-                return isHovered ? 200 : 160
-            }
+        if playing {
+            return isHovered ? 360 : 300
         }
+        return isHovered ? 300 : 240
     }
     
     /// Computes the target height of the pill based on notch presence, playback, and hover state.
@@ -47,15 +38,15 @@ struct TopSurfaceView: View {
         let playing = stateStore.playbackState == .playing
         if hasNotch {
             if playing {
-                return isHovered ? 68 : safeAreaTopInset
+                return isHovered ? 82 : max(52, min(64, safeAreaTopInset))
             } else {
-                return isHovered ? 48 : safeAreaTopInset
+                return isHovered ? 58 : max(44, min(56, safeAreaTopInset))
             }
         } else {
             if playing {
-                return isHovered ? 68 : 22
+                return isHovered ? 74 : 46
             } else {
-                return isHovered ? 38 : 22
+                return isHovered ? 54 : 38
             }
         }
     }
@@ -63,11 +54,8 @@ struct TopSurfaceView: View {
     /// Computes the corner radius for the visual appearance.
     var targetCornerRadius: CGFloat {
         if hasNotch {
-            // For a physical notch, only the bottom corners are typically rounded by the OS, 
-            // but a uniform 12pt corner radius provides a smooth, native look under expansion.
-            return 12
+            return isHovered ? 22 : 18
         } else {
-            // Virtual island uses a fully rounded pill style.
             return targetHeight / 2
         }
     }
@@ -88,147 +76,48 @@ struct TopSurfaceView: View {
             Spacer().frame(height: topPadding)
             
             ZStack {
-                // Background shape with standard macOS dark color / black to match bezel/notch
-                RoundedRectangle(cornerRadius: targetCornerRadius, style: .continuous)
+                surfaceShape
                     .fill(Color.black)
+                    .overlay(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(isHovered ? 0.07 : 0.035),
+                                Color.clear,
+                                Color.black.opacity(0.25)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .clipShape(surfaceShape)
+                    )
                 
-                // Content container
                 if playing {
                     if isHovered {
-                        // Expanded Live Activity
                         if let track = stateStore.currentTrack {
-                            VStack(spacing: 0) {
-                                if hasNotch {
-                                    Spacer().frame(height: safeAreaTopInset)
-                                } else {
-                                    Spacer()
-                                }
-                                
-                                HStack(spacing: 8) {
-                                    // Mini artwork
-                                    ZStack {
-                                        RoundedRectangle(cornerRadius: 6)
-                                            .fill(
-                                                LinearGradient(
-                                                    colors: [Color.purple.opacity(0.8), Color.blue.opacity(0.8)],
-                                                    startPoint: .topLeading,
-                                                    endPoint: .bottomTrailing
-                                                )
-                                            )
-                                            .frame(width: 24, height: 24)
-                                        Image(systemName: "music.note")
-                                            .font(.system(size: 11))
-                                            .foregroundColor(.white)
-                                    }
-                                    
-                                    VStack(alignment: .leading, spacing: 0) {
-                                        Text(track.title)
-                                            .font(.system(size: 11, weight: .bold, design: .rounded))
-                                            .foregroundColor(.white)
-                                            .lineLimit(1)
-                                        Text(track.artist)
-                                            .font(.system(size: 9, design: .rounded))
-                                            .foregroundColor(.white.opacity(0.6))
-                                            .lineLimit(1)
-                                    }
-                                    .frame(maxWidth: 110, alignment: .leading)
-                                    
-                                    Spacer(minLength: 4)
-                                    
-                                    // Miniature media controls
-                                    HStack(spacing: 8) {
-                                        Button(action: {
-                                            stateStore.previousTrack()
-                                        }) {
-                                            Image(systemName: "backward.fill")
-                                                .font(.system(size: 9))
-                                                .foregroundColor(.white)
-                                                .frame(width: 22, height: 22)
-                                                .background(Color.white.opacity(isHoveredPrevMini ? 0.2 : 0.05))
-                                                .clipShape(Circle())
-                                        }
-                                        .buttonStyle(.plain)
-                                        .onHover { h in isHoveredPrevMini = h }
-                                        
-                                        Button(action: {
-                                            stateStore.playpause()
-                                        }) {
-                                            Image(systemName: stateStore.playbackState == .playing ? "pause.fill" : "play.fill")
-                                                .font(.system(size: 9))
-                                                .foregroundColor(.white)
-                                                .frame(width: 22, height: 22)
-                                                .background(Color.white.opacity(isHoveredPlayMini ? 0.25 : 0.1))
-                                                .clipShape(Circle())
-                                        }
-                                        .buttonStyle(.plain)
-                                        .onHover { h in isHoveredPlayMini = h }
-                                        
-                                        Button(action: {
-                                            stateStore.nextTrack()
-                                        }) {
-                                            Image(systemName: "forward.fill")
-                                                .font(.system(size: 9))
-                                                .foregroundColor(.white)
-                                                .frame(width: 22, height: 22)
-                                                .background(Color.white.opacity(isHoveredNextMini ? 0.2 : 0.05))
-                                                .clipShape(Circle())
-                                        }
-                                        .buttonStyle(.plain)
-                                        .onHover { h in isHoveredNextMini = h }
-                                    }
-                                }
-                                .padding(.horizontal, 12)
-                                
-                                Spacer()
-                            }
+                            expandedNowPlaying(track)
                         }
                     } else {
-                        // Playing but not hovered
                         if let track = stateStore.currentTrack {
-                            Text("🎵 \(track.title) - \(track.artist)")
-                                .font(.system(size: 11, design: .rounded))
-                                .foregroundColor(.white)
-                                .lineLimit(1)
-                                .padding(.horizontal, 10)
+                            compactNowPlaying(track)
                         } else {
-                            Text("🎵 Music")
-                                .font(.system(size: 11, design: .rounded))
-                                .foregroundColor(.white)
-                                .lineLimit(1)
-                                .padding(.horizontal, 10)
+                            compactIdleSurface(title: "Music")
                         }
                     }
                 } else {
-                    // Not playing
-                    HStack(spacing: 8) {
-                        Circle()
-                            .fill(isHovered ? Color.green : Color.white.opacity(0.3))
-                            .frame(width: 6, height: 6)
-                        
-                        if isHovered {
-                            Text("Top Notch")
-                                .font(.system(size: 11, weight: .medium, design: .rounded))
-                                .foregroundColor(.white)
-                                .lineLimit(1)
-                                .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                        }
-                    }
-                    .padding(.horizontal, 10)
+                    compactIdleSurface(title: isHovered ? "Top Notch" : "")
                 }
             }
             .frame(width: targetWidth, height: targetHeight)
             .overlay(
-                RoundedRectangle(cornerRadius: targetCornerRadius, style: .continuous)
+                surfaceShape
                     .stroke(Color.white.opacity(isHovered ? 0.15 : 0.05), lineWidth: 1)
             )
             .shadow(color: .black.opacity(isHovered ? 0.4 : 0.15), radius: isHovered ? 8 : 3, y: isHovered ? 4 : 1.5)
-            // A fluid spring animation for organic Liquid Glass physical feel
             .animation(.spring(response: 0.28, dampingFraction: 0.75, blendDuration: 0), value: isHovered)
             .animation(.spring(response: 0.28, dampingFraction: 0.75, blendDuration: 0), value: stateStore.playbackState)
             .onHover { hovering in
                 isHovered = hovering
             }
-            // Clicking the pill toggles the main panel
             .onTapGesture {
                 onTap()
             }
@@ -236,5 +125,174 @@ struct TopSurfaceView: View {
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+
+    private var surfaceShape: UnevenRoundedRectangle {
+        if hasNotch {
+            return UnevenRoundedRectangle(
+                cornerRadii: RectangleCornerRadii(
+                    topLeading: 0,
+                    bottomLeading: targetCornerRadius,
+                    bottomTrailing: targetCornerRadius,
+                    topTrailing: 0
+                ),
+                style: .continuous
+            )
+        }
+
+        return UnevenRoundedRectangle(cornerRadii: RectangleCornerRadii(topLeading: targetCornerRadius, bottomLeading: targetCornerRadius, bottomTrailing: targetCornerRadius, topTrailing: targetCornerRadius), style: .continuous)
+    }
+
+    private func compactNowPlaying(_ track: NowPlayingTrack) -> some View {
+        HStack(spacing: 0) {
+            albumBadge(size: 34, cornerRadius: 9)
+                .padding(.leading, 18)
+
+            Spacer()
+
+            equalizerIcon
+                .scaleEffect(0.72)
+                .padding(.trailing, 20)
+        }
+        .overlay(
+            Text(track.title)
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .foregroundColor(.white.opacity(0.0))
+                .lineLimit(1)
+        )
+    }
+
+    private func expandedNowPlaying(_ track: NowPlayingTrack) -> some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 10) {
+                albumBadge(size: 42, cornerRadius: 10)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(track.title)
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+
+                    Text(track.artist)
+                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.56))
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .layoutPriority(1)
+
+                equalizerIcon
+                    .scaleEffect(0.76)
+            }
+
+            HStack(spacing: 8) {
+                miniControlButton(systemName: "backward.fill", isHovered: isHoveredPrevMini) {
+                    stateStore.previousTrack()
+                }
+                .onHover { isHoveredPrevMini = $0 }
+
+                miniControlButton(
+                    systemName: stateStore.playbackState == .playing ? "pause.fill" : "play.fill",
+                    isHovered: isHoveredPlayMini
+                ) {
+                    stateStore.playpause()
+                }
+                .onHover { isHoveredPlayMini = $0 }
+
+                miniControlButton(systemName: "forward.fill", isHovered: isHoveredNextMini) {
+                    stateStore.nextTrack()
+                }
+                .onHover { isHoveredNextMini = $0 }
+
+                Spacer()
+
+                Text(track.album.isEmpty ? "Now Playing" : track.album)
+                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                    .foregroundColor(.white.opacity(0.42))
+                    .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+    }
+
+    private func compactIdleSurface(title: String) -> some View {
+        HStack(spacing: 10) {
+            Circle()
+                .fill(isHovered ? Color.green : Color.white.opacity(0.32))
+                .frame(width: 7, height: 7)
+
+            if !title.isEmpty {
+                Text(title)
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white.opacity(0.88))
+                    .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, 16)
+    }
+
+    private func albumBadge(size: CGFloat, cornerRadius: CGFloat) -> some View {
+        ZStack(alignment: .bottomTrailing) {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.72, green: 0.44, blue: 0.18),
+                            Color(red: 0.18, green: 0.13, blue: 0.22),
+                            Color(red: 0.06, green: 0.05, blue: 0.10)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(
+                    Image(systemName: "music.note")
+                        .font(.system(size: size * 0.36, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.86))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .stroke(Color.white.opacity(0.16), lineWidth: 1)
+                )
+                .frame(width: size, height: size)
+
+            RoundedRectangle(cornerRadius: size * 0.16, style: .continuous)
+                .fill(Color(red: 1.0, green: 0.17, blue: 0.32))
+                .frame(width: size * 0.34, height: size * 0.34)
+                .overlay(
+                    Image(systemName: "music.note")
+                        .font(.system(size: size * 0.18, weight: .bold))
+                        .foregroundColor(.white)
+                )
+                .offset(x: size * 0.09, y: size * 0.09)
+        }
+        .frame(width: size, height: size)
+    }
+
+    private var equalizerIcon: some View {
+        HStack(alignment: .bottom, spacing: 4) {
+            Capsule().frame(width: 4, height: 22)
+            Capsule().frame(width: 4, height: 34)
+            Capsule().frame(width: 4, height: 28)
+        }
+        .foregroundColor(Color(red: 0.76, green: 0.82, blue: 1.0))
+        .shadow(color: Color(red: 0.45, green: 0.55, blue: 1.0).opacity(0.35), radius: 5)
+    }
+
+    private func miniControlButton(
+        systemName: String,
+        isHovered: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(.white)
+                .frame(width: 24, height: 24)
+                .background(Color.white.opacity(isHovered ? 0.18 : 0.08))
+                .clipShape(Circle())
+        }
+        .buttonStyle(.plain)
     }
 }

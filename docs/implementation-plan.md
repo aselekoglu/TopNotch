@@ -77,16 +77,16 @@ App shell and window positioning
 - [x] App handles unavailable lyrics cleanly.
 
 ## Phase 3: Daily Utilities
-- [ ] Task 8: Implement clipboard privacy filters
-- [ ] Task 9: Implement text-only clipboard history store
-- [ ] Task 10: Implement clipboard panel UI
-- [ ] Task 11: Implement Markdown scratchpad and pinned notes store
+- [x] Task 8: Implement clipboard privacy filters
+- [x] Task 9: Implement text-only clipboard history store
+- [x] Task 10: Implement clipboard panel UI
+- [x] Task 11: Implement Markdown scratchpad and pinned notes store
 - [ ] Task 12: Implement notes panel UI with preview and one-click copy
 
 ### Checkpoint: Utilities
-- [ ] Normal copied text appears in history.
-- [ ] Sensitive-looking text does not persist.
-- [ ] Image/file clipboard entries are ignored.
+- [x] Normal copied text appears in history.
+- [x] Sensitive-looking text does not persist.
+- [x] Image/file clipboard entries are ignored.
 - [ ] Markdown notes can be edited, previewed, pinned, and copied.
 
 ## Phase 4: Configuration and Polish

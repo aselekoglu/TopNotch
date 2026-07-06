@@ -9,8 +9,8 @@ final class MainPanelWindowController: NSWindowController {
     private var currentTopSurfaceFrame: CGRect = .zero
     
     init(onOpenSettings: @escaping () -> Void) {
-        let panelWidth: CGFloat = 320
-        let panelHeight: CGFloat = 420
+        let panelWidth: CGFloat = 780
+        let panelHeight: CGFloat = 220
         
         let panel = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: panelWidth, height: panelHeight),
@@ -30,11 +30,6 @@ final class MainPanelWindowController: NSWindowController {
         
         // Wrap MainPanelView inside an NSHostingView with premium rounded corners and borders
         let contentView = MainPanelView(onOpenSettings: onOpenSettings)
-            .cornerRadius(16)
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
-            )
         
         panel.contentView = NSHostingView(rootView: contentView)
     }
@@ -73,9 +68,7 @@ final class MainPanelWindowController: NSWindowController {
         // Center horizontally below the top surface pill
         let x = topSurfaceFrame.minX + (topSurfaceFrame.width - panelWidth) / 2
         
-        // Aligns below the active surface (accounting for notch safe area height or notchless default menu-bar size)
-        let pillBottomY = topInset > 0 ? (topSurfaceFrame.maxY - topInset) : (topSurfaceFrame.maxY - 22)
-        let y = pillBottomY - panelHeight - 8 // 8pt padding gap
+        let y = topSurfaceFrame.maxY - panelHeight
         
         window.setFrame(NSRect(x: x, y: y, width: panelWidth, height: panelHeight), display: true)
         window.orderFrontRegardless()

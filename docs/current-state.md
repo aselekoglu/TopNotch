@@ -4,7 +4,12 @@ Last updated: 2026-07-06
 
 ## Summary
 
-Task 8, "Implement Clipboard Privacy Filters", has been implemented and verified. The clipboard module now has a pure `ClipboardPrivacyFilter` and `ClipboardPolicy` boundary in `TopNotchCore` so future clipboard monitoring/storage can reject sensitive-looking text before persistence. The filter rejects credential, token/API key, 2FA/OTP, and Luhn-valid payment card-like content; enforces a configurable maximum text length; and represents excluded source apps by bundle identifier.
+Tasks 8, 9, 10, and 11 are implemented and verified at the code/build level. The daily utilities now include:
+- A pure `ClipboardPrivacyFilter` + `ClipboardPolicy` boundary that rejects credential, token/API key, 2FA/OTP, and Luhn-valid payment card-like content before persistence.
+- A text-only local clipboard history store (`ClipboardStore`) with retention defaults of latest 100 items or 30 days.
+- A clipboard monitor (`ClipboardMonitor`) that polls `NSPasteboard.general` and forwards only string content to the store while ignoring image/file types.
+- A compact Clipboard panel UI that renders recent text items, supports search, copies an item back to the system pasteboard, and shows clear empty/privacy-filtered states.
+- A local Markdown notes store (`NotesStore`) for scratchpad content and pinned Markdown notes, with pin/update/unpin/delete persistence.
 
 The app currently:
 
@@ -18,7 +23,7 @@ The app currently:
 - Listens to global/local events to dismiss the panel when clicking outside, safeguarding against double-toggling.
 - Features a registry-driven list showing active modules (Music, Clipboard, Notes) and planned modules (Calendar, Timer, File Drop, Commands, Agents) styled as coming-soon tiles.
 - Incorporates an interactive full player card for the Music module within the main panel, now supporting metadata non-truncation constraints and an expandable lyrics viewer.
-- Runs 31 unit tests successfully across shell configuration, screen calculations, registry operations, state stores, player controls, lyrics provider/state stores, and clipboard privacy filtering.
+- Runs 60 unit tests successfully across shell configuration, screen calculations, registry operations, state stores, player controls, lyrics provider/state stores, clipboard privacy/history behavior, and notes persistence.
 
 ## Important Files
 
@@ -36,6 +41,13 @@ The app currently:
 - `Sources/TopNotchCore/Modules/Music/MusicStateStore.swift`: MainActor state store/publisher.
 - `Sources/TopNotchCore/Modules/Clipboard/ClipboardPolicy.swift`: Clipboard capture policy for size limits and excluded source apps.
 - `Sources/TopNotchCore/Modules/Clipboard/ClipboardPrivacyFilter.swift`: Pure pre-persistence privacy filter for sensitive-looking clipboard text.
+- `Sources/TopNotchCore/Modules/Clipboard/ClipboardEntry.swift`: Codable clipboard entry model for persisted text history.
+- `Sources/TopNotchCore/Modules/Clipboard/ClipboardStore.swift`: MainActor local clipboard history store with filter-first writes and retention enforcement.
+- `Sources/TopNotchCore/Modules/Clipboard/ClipboardMonitor.swift`: AppKit monitor polling `NSPasteboard` and forwarding accepted text entries.
+- `Sources/TopNotch/Modules/Clipboard/ClipboardPanelView.swift`: Clipboard panel UI with search, empty/privacy-filtered states, and copy-back action.
+- `Sources/TopNotch/Modules/Clipboard/ClipboardItemRow.swift`: Clipboard history row with preview, timestamp/source metadata, and copy affordance.
+- `Sources/TopNotchCore/Modules/Notes/Note.swift`: Codable pinned Markdown note model.
+- `Sources/TopNotchCore/Modules/Notes/NotesStore.swift`: MainActor local notes store for scratchpad and pinned note persistence.
 - `Sources/TopNotchCore/Modules/WorkflowModule.swift`: Registry module data definitions.
 - `Sources/TopNotchCore/Modules/ModuleRegistry.swift`: Thread-safe registry store.
 - `Sources/TopNotch/App/TopNotchApp.swift`: App entrypoint.
@@ -56,13 +68,18 @@ The app currently:
 - `Tests/Unit/MediaControlTests.swift`: Unit tests for playback controls forwarding.
 - `Tests/Unit/LyricsStateStoreTests.swift`: Unit tests for lyrics provider and state transitions.
 - `Tests/Unit/ClipboardPrivacyFilterTests.swift`: Unit tests for sensitive content, size limits, and excluded source apps.
+- `Tests/Unit/ClipboardStoreTests.swift`: Unit tests for storage, retention, text-only behavior, and persistence roundtrips.
+- `Tests/Unit/NotesStoreTests.swift`: Unit tests for scratchpad persistence, pin/update/unpin/delete behavior, pinned note limits, and persistence roundtrips.
 - `docs/technical-risks.md`: Apple Music integration risks, permissions, and lyrics feasibility document.
 - `script/build_and_run.sh`: Build, bundle, launch, and verification script.
 
 ## Verification History
 
 ## Unit Tests
-A new test suite `ClipboardPrivacyFilterTests` was added to verify ordinary text acceptance, credential/token/2FA/payment-card rejection, Luhn false-positive avoidance, maximum-length boundaries, and excluded source app handling.
+The clipboard domain now has two test suites:
+- `ClipboardPrivacyFilterTests` verifies ordinary text acceptance, credential/token/2FA/payment-card rejection, Luhn false-positive avoidance, maximum-length boundaries, and excluded source app handling.
+- `ClipboardStoreTests` verifies accepted text storage, sensitive text rejection before persistence, retention trimming by count/age, persistence roundtrips, clear/remove operations, rejection state publishing, and duplicate copy-back suppression.
+- `NotesStoreTests` verifies scratchpad Markdown persistence, pin/update/unpin/delete persistence, pinned note ordering and limits, missing-file startup, and roundtrip persistence.
 
 ```bash
 COPYFILE_DISABLE=1 DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer swift test --scratch-path /tmp/topnotch-swiftpm-build
@@ -70,7 +87,7 @@ COPYFILE_DISABLE=1 DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer
 
 Latest result:
 ```text
-Executed 31 tests, with 0 failures (0 unexpected) in 0.592 (0.598) seconds
+Executed 60 tests, with 0 failures (0 unexpected) in 0.639 (0.648) seconds
 ✔ Test run with 0 tests in 0 suites passed after 0.001 seconds.
 ```
 
@@ -93,9 +110,15 @@ Process verification passed through the script.
 3. Verified clicking play/pause/skip on both the mini-player and main panel detailed widget commands Apple Music correctly.
 4. Verified main panel displays a detailed player card for the Music module.
 5. Verified lyrics bubble button expands/collapses the player card to display plain, synced, loading, or unavailable lyrics correctly and beautifully.
+6. Verified main panel sizes and corner curves (28pt) are optimized so that the artwork, buttons, and settings/mirror circle buttons are never clipped by the corners.
+7. Verified notes panel write (plain text markdown editor) and read (native AttributedString styled preview) modes render and persist scratchpad markdown correctly.
+8. Verified notes pinning horizontal list, copying notes raw source markdown, and unpinning/deleting notes function end-to-end.
+
+### Manual Checks Pending
+1. Clipboard panel end-to-end UI check: copy text, open panel, copy a history item back, and confirm it does not duplicate in history.
 
 ## Next Task
 
-Task 8 is complete. The next task in the approved implementation plan is:
-- Task 9: "Implement Text-Only Clipboard History Store".
-  - Monitor and store accepted text clipboard entries locally with default retention of 100 items or 30 days.
+Task 12 is complete. The next task in the approved implementation plan is:
+- Task 13: "Implement Settings Model and Persistence".
+  - Add local settings persistence for modules, display behavior, interaction behavior, clipboard retention, and notes preferences.
