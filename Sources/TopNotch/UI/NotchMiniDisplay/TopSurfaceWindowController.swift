@@ -11,6 +11,10 @@ final class TopSurfaceWindowController: NSWindowController {
     nonisolated(unsafe) private var screenTrackingTimer: Timer?
     private var cancellables: Set<AnyCancellable> = []
     
+    static let windowHorizontalPadding: CGFloat = 30
+    static let windowTopPadding: CGFloat = 20
+    static let windowBottomPadding: CGFloat = 30
+
     init(onTapPill: @escaping () -> Void) {
         self.onTapPill = onTapPill
         let initialWindowSize = Self.windowSize(for: SettingsStore.shared.settings)
@@ -71,11 +75,14 @@ final class TopSurfaceWindowController: NSWindowController {
         let windowWidth = window.frame.width
         let windowHeight = window.frame.height
         
-        let frame = NotchGeometryCalculator.calculateWindowFrame(
+        var frame = NotchGeometryCalculator.calculateWindowFrame(
             for: screenMetrics,
             windowWidth: windowWidth,
             windowHeight: windowHeight
         )
+        
+        // Offset window y-position to align the padded view with the top edge of screen
+        frame.origin.y += Self.windowTopPadding
         
         window.setFrame(frame, display: true)
     }
@@ -116,8 +123,17 @@ final class TopSurfaceWindowController: NSWindowController {
 
         if forceRehost || screenChanged || panel.contentView == nil {
             let safeAreaTopInset = activeScreen?.safeAreaInsets.top ?? 0
-            let contentView = TopSurfaceView(safeAreaTopInset: safeAreaTopInset, onTap: onTapPill)
-            panel.contentView = NSHostingView(rootView: contentView)
+            let contentView = TopSurfaceView(
+                safeAreaTopInset: safeAreaTopInset,
+                onTap: onTapPill,
+                windowHorizontalPadding: Self.windowHorizontalPadding,
+                windowTopPadding: Self.windowTopPadding,
+                windowBottomPadding: Self.windowBottomPadding
+            )
+            let hostingView = NSHostingView(rootView: contentView)
+            hostingView.wantsLayer = true
+            hostingView.layer?.backgroundColor = NSColor.clear.cgColor
+            panel.contentView = hostingView
         }
 
         positionWindow()
@@ -134,8 +150,8 @@ final class TopSurfaceWindowController: NSWindowController {
 
     private static func windowSize(for settings: AppSettings) -> CGSize {
         CGSize(
-            width: CGFloat(max(settings.inactiveSurfaceWidth, settings.hoverSurfaceWidth)),
-            height: CGFloat(max(settings.inactiveSurfaceHeight, settings.hoverSurfaceHeight))
+            width: CGFloat(max(settings.inactiveSurfaceWidth, settings.hoverSurfaceWidth)) + 2 * windowHorizontalPadding,
+            height: CGFloat(max(settings.inactiveSurfaceHeight, settings.hoverSurfaceHeight)) + windowTopPadding + windowBottomPadding
         )
     }
 }

@@ -11,6 +11,10 @@ struct TopSurfaceView: View {
     /// Callback triggered when the pill is clicked.
     let onTap: () -> Void
     
+    let windowHorizontalPadding: CGFloat
+    let windowTopPadding: CGFloat
+    let windowBottomPadding: CGFloat
+    
     /// Tracks whether the mouse cursor is currently hovering over the pill.
     @State private var isHovered = false
     
@@ -68,7 +72,8 @@ struct TopSurfaceView: View {
         NotchGeometryCalculator.calculateTopSurfaceContentLayout(
             surfaceSize: CGSize(width: targetWidth, height: targetHeight),
             deadzoneWidth: physicalDeadzoneSize.width,
-            deadzoneHeight: physicalDeadzoneSize.height
+            deadzoneHeight: physicalDeadzoneSize.height,
+            horizontalPadding: 20
         )
     }
     
@@ -105,7 +110,7 @@ struct TopSurfaceView: View {
     var body: some View {
         let playing = stateStore.playbackState == .playing
         VStack(spacing: 0) {
-            Spacer().frame(height: topPadding)
+            Spacer().frame(height: windowTopPadding + topPadding)
             
             ZStack {
                 surfaceShape
@@ -177,10 +182,10 @@ struct TopSurfaceView: View {
             
             Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .frame(width: targetWidth + 2 * windowHorizontalPadding, height: targetHeight + windowTopPadding + windowBottomPadding)
         .overlay(alignment: .top) {
             calibrationHighlightOverlay
-                .padding(.top, topPadding)
+                .padding(.top, windowTopPadding + topPadding)
         }
         .onReceive(timer) { _ in
             if stateStore.playbackState == .playing {
@@ -197,33 +202,18 @@ struct TopSurfaceView: View {
         }
     }
     
-    private var surfaceShape: UnevenRoundedRectangle {
-        if hasNotch {
-            return UnevenRoundedRectangle(
-                cornerRadii: RectangleCornerRadii(
-                    topLeading: 0,
-                    bottomLeading: targetCornerRadius,
-                    bottomTrailing: targetCornerRadius,
-                    topTrailing: 0
-                ),
-                style: .continuous
-            )
-        }
-        return UnevenRoundedRectangle(
-            cornerRadii: RectangleCornerRadii(
-                topLeading: targetCornerRadius,
-                bottomLeading: targetCornerRadius,
-                bottomTrailing: targetCornerRadius,
-                topTrailing: targetCornerRadius
-            ),
-            style: .continuous
+    private var surfaceShape: TopSurfaceShape {
+        TopSurfaceShape(
+            hasNotch: hasNotch,
+            cornerRadius: targetCornerRadius,
+            flareRadius: 10
         )
     }
     
     private func compactNowPlaying(_ track: NowPlayingTrack) -> some View {
         HStack(spacing: 8) {
             albumBadge(size: max(20, targetHeight - 8), cornerRadius: 6)
-                .padding(.leading, 8)
+                .padding(.leading, 20)
             
             VStack(alignment: .leading, spacing: 1) {
                 Text(track.title)
@@ -249,7 +239,7 @@ struct TopSurfaceView: View {
             
             equalizerIcon
                 .scaleEffect(0.65)
-                .padding(.trailing, 10)
+                .padding(.trailing, 20)
         }
     }
 
@@ -291,7 +281,7 @@ struct TopSurfaceView: View {
 
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 20)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
     }
@@ -360,7 +350,7 @@ struct TopSurfaceView: View {
                 Spacer()
             }
         }
-        .padding(.horizontal, 10)
+        .padding(.horizontal, 20)
         .padding(.vertical, 6)
     }
 
@@ -437,7 +427,7 @@ struct TopSurfaceView: View {
                 }
                 .frame(maxWidth: .infinity, minHeight: 22, alignment: .leading)
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 20)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
     }
@@ -455,7 +445,7 @@ struct TopSurfaceView: View {
                     .lineLimit(1)
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 20)
     }
 
     private func compactIdleSurfaceWithDeadzone(title: String) -> some View {
@@ -485,7 +475,7 @@ struct TopSurfaceView: View {
 
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 20)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
     }
@@ -513,7 +503,7 @@ struct TopSurfaceView: View {
             .clipped()
         }
         .frame(height: max(0, notchContentLayout.deadzoneFrame.height))
-        .padding(.horizontal, 10)
+        .padding(.horizontal, 20)
         .padding(.top, 6)
     }
 
@@ -688,7 +678,7 @@ struct TopSurfaceView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 24)
             .padding(.bottom, 6)
         }
     }
@@ -826,6 +816,71 @@ struct TopSurfaceView: View {
             return "Shine bright today!"
         default:
             return "Companion active."
+        }
+    }
+}
+
+/// A custom shape that supports seamless flare-out corners at the top of physical notches,
+/// and falls back to standard rounded corners for floating virtual islands.
+struct TopSurfaceShape: Shape {
+    let hasNotch: Bool
+    let cornerRadius: CGFloat
+    let flareRadius: CGFloat
+    
+    func path(in rect: CGRect) -> Path {
+        if hasNotch {
+            var path = Path()
+            let fr = min(flareRadius, rect.width / 4, rect.height / 2)
+            let cr = min(cornerRadius, rect.width / 2 - fr, rect.height - fr)
+            
+            // Start at top-left (0, 0)
+            path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+            
+            // Top-left flare-out curve
+            path.addArc(
+                tangent1End: CGPoint(x: rect.minX + fr, y: rect.minY),
+                tangent2End: CGPoint(x: rect.minX + fr, y: rect.maxY),
+                radius: fr
+            )
+            
+            // Left vertical wall
+            path.addLine(to: CGPoint(x: rect.minX + fr, y: rect.maxY - cr))
+            
+            // Bottom-left corner
+            path.addArc(
+                tangent1End: CGPoint(x: rect.minX + fr, y: rect.maxY),
+                tangent2End: CGPoint(x: rect.maxX, y: rect.maxY),
+                radius: cr
+            )
+            
+            // Bottom edge
+            path.addLine(to: CGPoint(x: rect.maxX - fr - cr, y: rect.maxY))
+            
+            // Bottom-right corner
+            path.addArc(
+                tangent1End: CGPoint(x: rect.maxX - fr, y: rect.maxY),
+                tangent2End: CGPoint(x: rect.maxX - fr, y: rect.minY),
+                radius: cr
+            )
+            
+            // Right vertical wall
+            path.addLine(to: CGPoint(x: rect.maxX - fr, y: rect.minY + fr))
+            
+            // Top-right flare-out curve
+            path.addArc(
+                tangent1End: CGPoint(x: rect.maxX - fr, y: rect.minY),
+                tangent2End: CGPoint(x: rect.maxX, y: rect.minY),
+                radius: fr
+            )
+            
+            path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+            path.closeSubpath()
+            return path
+        } else {
+            // Standard rounded rectangle for floating island
+            var path = Path()
+            path.addRoundedRect(in: rect, cornerSize: CGSize(width: cornerRadius, height: cornerRadius), style: .continuous)
+            return path
         }
     }
 }
