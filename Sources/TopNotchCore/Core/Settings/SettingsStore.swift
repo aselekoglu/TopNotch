@@ -25,6 +25,9 @@ public final class SettingsStore: ObservableObject, @unchecked Sendable {
     }
     
     public func setActiveScreen(_ screen: NSScreen) {
+        if let active = self.activeScreen, Self.screenIdentifier(active) == Self.screenIdentifier(screen) {
+            return
+        }
         self.activeScreen = screen
         
         let id = Self.screenIdentifier(screen)
