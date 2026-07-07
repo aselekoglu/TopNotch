@@ -175,4 +175,36 @@ final class SettingsStoreTests: XCTestCase {
         
         try? FileManager.default.removeItem(at: url)
     }
+    
+    func testPerDisplaySettings() {
+        guard let screen = NSScreen.screens.first else {
+            XCTFail("No screens available for testing per-display settings")
+            return
+        }
+        
+        let url = tempStorageURL()
+        let store = makeStore(storageURL: url)
+        
+        // Set active screen
+        store.setActiveScreen(screen)
+        
+        // Modify top level properties
+        var settings = store.settings
+        settings.inactiveSurfaceWidth = 450.0
+        settings.hoverSurfaceWidth = 580.0
+        store.update(settings: settings)
+        
+        // Check active screen settings are stored
+        let id = SettingsStore.screenIdentifier(screen)
+        XCTAssertNotNil(store.settings.displaySettings[id])
+        XCTAssertEqual(store.settings.displaySettings[id]?.inactiveSurfaceWidth, 450.0)
+        XCTAssertEqual(store.settings.displaySettings[id]?.hoverSurfaceWidth, 580.0)
+        
+        // Reload and verify
+        let reloadedStore = makeStore(storageURL: url)
+        XCTAssertEqual(reloadedStore.settings.displaySettings[id]?.inactiveSurfaceWidth, 450.0)
+        XCTAssertEqual(reloadedStore.settings.displaySettings[id]?.hoverSurfaceWidth, 580.0)
+        
+        try? FileManager.default.removeItem(at: url)
+    }
 }

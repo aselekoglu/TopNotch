@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 
 @MainActor
 public final class SettingsStore: ObservableObject, @unchecked Sendable {
@@ -8,6 +8,7 @@ public final class SettingsStore: ObservableObject, @unchecked Sendable {
     @Published public private(set) var settings: AppSettings = AppSettings()
     
     public let storageURL: URL
+    public private(set) var activeScreen: NSScreen?
     
     public init(storageURL: URL? = nil) {
         self.storageURL = storageURL ?? Self.defaultStorageURL()
@@ -16,13 +17,82 @@ public final class SettingsStore: ObservableObject, @unchecked Sendable {
     
     // MARK: - API
     
+    public static func screenIdentifier(_ screen: NSScreen) -> String {
+        let name = screen.localizedName.isEmpty ? "Display" : screen.localizedName
+        let width = Int(screen.frame.width)
+        let height = Int(screen.frame.height)
+        return "\(name) (\(width)x\(height))"
+    }
+    
+    public func setActiveScreen(_ screen: NSScreen) {
+        self.activeScreen = screen
+        
+        let id = Self.screenIdentifier(screen)
+        var newSettings = settings
+        
+        if let screenSettings = settings.displaySettings[id] {
+            // Load existing settings for this screen
+            newSettings.customNotchWidth = screenSettings.customNotchWidth
+            newSettings.customNotchHeight = screenSettings.customNotchHeight
+            newSettings.inactiveSurfaceWidth = screenSettings.inactiveSurfaceWidth
+            newSettings.inactiveSurfaceHeight = screenSettings.inactiveSurfaceHeight
+            newSettings.hoverSurfaceWidth = screenSettings.hoverSurfaceWidth
+            newSettings.hoverSurfaceHeight = screenSettings.hoverSurfaceHeight
+            
+            if newSettings != settings {
+                update(settings: newSettings)
+            }
+        } else {
+            // Initialize with current settings as default
+            let screenSettings = DisplaySizeSettings(
+                customNotchWidth: settings.customNotchWidth,
+                customNotchHeight: settings.customNotchHeight,
+                inactiveSurfaceWidth: settings.inactiveSurfaceWidth,
+                inactiveSurfaceHeight: settings.inactiveSurfaceHeight,
+                hoverSurfaceWidth: settings.hoverSurfaceWidth,
+                hoverSurfaceHeight: settings.hoverSurfaceHeight
+            )
+            newSettings.displaySettings[id] = screenSettings
+            update(settings: newSettings)
+        }
+    }
+    
     public func update(settings: AppSettings) {
-        self.settings = settings
+        var updated = settings
+        if let screen = self.activeScreen {
+            let id = Self.screenIdentifier(screen)
+            let screenSettings = DisplaySizeSettings(
+                customNotchWidth: settings.customNotchWidth,
+                customNotchHeight: settings.customNotchHeight,
+                inactiveSurfaceWidth: settings.inactiveSurfaceWidth,
+                inactiveSurfaceHeight: settings.inactiveSurfaceHeight,
+                hoverSurfaceWidth: settings.hoverSurfaceWidth,
+                hoverSurfaceHeight: settings.hoverSurfaceHeight
+            )
+            updated.displaySettings[id] = screenSettings
+        }
+        self.settings = updated
         save()
     }
     
     public func resetToDefaults() {
-        self.settings = AppSettings()
+        var defaultSettings = AppSettings()
+        // If we reset, keep the other display settings but reset current display to defaults
+        if let screen = self.activeScreen {
+            let id = Self.screenIdentifier(screen)
+            let defaults = AppSettings()
+            let screenSettings = DisplaySizeSettings(
+                customNotchWidth: defaults.customNotchWidth,
+                customNotchHeight: defaults.customNotchHeight,
+                inactiveSurfaceWidth: defaults.inactiveSurfaceWidth,
+                inactiveSurfaceHeight: defaults.inactiveSurfaceHeight,
+                hoverSurfaceWidth: defaults.hoverSurfaceWidth,
+                hoverSurfaceHeight: defaults.hoverSurfaceHeight
+            )
+            defaultSettings.displaySettings = settings.displaySettings
+            defaultSettings.displaySettings[id] = screenSettings
+        }
+        self.settings = defaultSettings
         save()
     }
     

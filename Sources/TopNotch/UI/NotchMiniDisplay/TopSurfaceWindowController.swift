@@ -114,6 +114,7 @@ final class TopSurfaceWindowController: NSWindowController {
         let screenChanged = resolvedScreen.map(screenIdentifier) != activeScreen.map(screenIdentifier)
         if let resolvedScreen {
             activeScreen = resolvedScreen
+            SettingsStore.shared.setActiveScreen(resolvedScreen)
         }
 
         let updatedSize = Self.windowSize(for: SettingsStore.shared.settings)

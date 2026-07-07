@@ -18,6 +18,7 @@ public struct AppSettings: Equatable, Sendable, Codable {
     public var hoverSurfaceHeight: Double
     public var idleWidgetType: String
     public var selectedSpriteType: String
+    public var displaySettings: [String: DisplaySizeSettings]
     
     public init(
         visibleModuleIdentifiers: [String] = ["music", "clipboard", "notes"],
@@ -36,7 +37,8 @@ public struct AppSettings: Equatable, Sendable, Codable {
         hoverSurfaceWidth: Double = 560.0,
         hoverSurfaceHeight: Double = 118.0,
         idleWidgetType: String = "systemResources",
-        selectedSpriteType: String = "cat"
+        selectedSpriteType: String = "cat",
+        displaySettings: [String: DisplaySizeSettings] = [:]
     ) {
         self.visibleModuleIdentifiers = visibleModuleIdentifiers
         self.enableHoverAffordance = enableHoverAffordance
@@ -55,6 +57,7 @@ public struct AppSettings: Equatable, Sendable, Codable {
         self.hoverSurfaceHeight = hoverSurfaceHeight
         self.idleWidgetType = idleWidgetType
         self.selectedSpriteType = selectedSpriteType
+        self.displaySettings = displaySettings
     }
     
     private enum CodingKeys: String, CodingKey {
@@ -75,6 +78,7 @@ public struct AppSettings: Equatable, Sendable, Codable {
         case hoverSurfaceHeight
         case idleWidgetType
         case selectedSpriteType
+        case displaySettings
     }
     
     public init(from decoder: Decoder) throws {
@@ -96,5 +100,31 @@ public struct AppSettings: Equatable, Sendable, Codable {
         self.hoverSurfaceHeight = try container.decodeIfPresent(Double.self, forKey: .hoverSurfaceHeight) ?? 118.0
         self.idleWidgetType = try container.decodeIfPresent(String.self, forKey: .idleWidgetType) ?? "systemResources"
         self.selectedSpriteType = try container.decodeIfPresent(String.self, forKey: .selectedSpriteType) ?? "cat"
+        self.displaySettings = try container.decodeIfPresent([String: DisplaySizeSettings].self, forKey: .displaySettings) ?? [:]
+    }
+}
+
+public struct DisplaySizeSettings: Codable, Equatable, Sendable {
+    public var customNotchWidth: Double
+    public var customNotchHeight: Double
+    public var inactiveSurfaceWidth: Double
+    public var inactiveSurfaceHeight: Double
+    public var hoverSurfaceWidth: Double
+    public var hoverSurfaceHeight: Double
+
+    public init(
+        customNotchWidth: Double,
+        customNotchHeight: Double,
+        inactiveSurfaceWidth: Double,
+        inactiveSurfaceHeight: Double,
+        hoverSurfaceWidth: Double,
+        hoverSurfaceHeight: Double
+    ) {
+        self.customNotchWidth = customNotchWidth
+        self.customNotchHeight = customNotchHeight
+        self.inactiveSurfaceWidth = inactiveSurfaceWidth
+        self.inactiveSurfaceHeight = inactiveSurfaceHeight
+        self.hoverSurfaceWidth = hoverSurfaceWidth
+        self.hoverSurfaceHeight = hoverSurfaceHeight
     }
 }
