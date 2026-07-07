@@ -177,8 +177,7 @@ struct TopSurfaceView: View {
                 TopSurfaceShape(
                     hasNotch: hasNotch,
                     cornerRadius: targetCornerRadius,
-                    flareRadius: 10,
-                    inset: 0.5
+                    flareRadius: 10
                 )
                 .stroke(activeBorderColor.opacity(isHovered ? 0.35 : 0.12), lineWidth: 1)
             )
