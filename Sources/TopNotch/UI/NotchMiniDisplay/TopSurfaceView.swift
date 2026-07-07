@@ -182,7 +182,7 @@ struct TopSurfaceView: View {
             
             Spacer(minLength: 0)
         }
-        .frame(width: targetWidth + 2 * windowHorizontalPadding, height: targetHeight + windowTopPadding + windowBottomPadding)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .overlay(alignment: .top) {
             calibrationHighlightOverlay
                 .padding(.top, windowTopPadding + topPadding)
@@ -831,49 +831,49 @@ struct TopSurfaceShape: Shape {
         if hasNotch {
             var path = Path()
             let fr = min(flareRadius, rect.width / 4, rect.height / 2)
-            let cr = min(cornerRadius, rect.width / 2 - fr, rect.height - fr)
+            let cr = min(cornerRadius, rect.height - fr)
             
-            // Start at top-left (0, 0)
-            path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+            // Start at top-left edge, flared outward
+            path.move(to: CGPoint(x: rect.minX - fr, y: rect.minY))
             
             // Top-left flare-out curve
             path.addArc(
-                tangent1End: CGPoint(x: rect.minX + fr, y: rect.minY),
-                tangent2End: CGPoint(x: rect.minX + fr, y: rect.maxY),
+                tangent1End: CGPoint(x: rect.minX, y: rect.minY),
+                tangent2End: CGPoint(x: rect.minX, y: rect.maxY),
                 radius: fr
             )
             
             // Left vertical wall
-            path.addLine(to: CGPoint(x: rect.minX + fr, y: rect.maxY - cr))
+            path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY - cr))
             
             // Bottom-left corner
             path.addArc(
-                tangent1End: CGPoint(x: rect.minX + fr, y: rect.maxY),
+                tangent1End: CGPoint(x: rect.minX, y: rect.maxY),
                 tangent2End: CGPoint(x: rect.maxX, y: rect.maxY),
                 radius: cr
             )
             
             // Bottom edge
-            path.addLine(to: CGPoint(x: rect.maxX - fr - cr, y: rect.maxY))
+            path.addLine(to: CGPoint(x: rect.maxX - cr, y: rect.maxY))
             
             // Bottom-right corner
             path.addArc(
-                tangent1End: CGPoint(x: rect.maxX - fr, y: rect.maxY),
-                tangent2End: CGPoint(x: rect.maxX - fr, y: rect.minY),
+                tangent1End: CGPoint(x: rect.maxX, y: rect.maxY),
+                tangent2End: CGPoint(x: rect.maxX, y: rect.minY),
                 radius: cr
             )
             
             // Right vertical wall
-            path.addLine(to: CGPoint(x: rect.maxX - fr, y: rect.minY + fr))
+            path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY + fr))
             
             // Top-right flare-out curve
             path.addArc(
-                tangent1End: CGPoint(x: rect.maxX - fr, y: rect.minY),
-                tangent2End: CGPoint(x: rect.maxX, y: rect.minY),
+                tangent1End: CGPoint(x: rect.maxX, y: rect.minY),
+                tangent2End: CGPoint(x: rect.maxX + fr, y: rect.minY),
                 radius: fr
             )
             
-            path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+            path.addLine(to: CGPoint(x: rect.maxX + fr, y: rect.minY))
             path.closeSubpath()
             return path
         } else {
