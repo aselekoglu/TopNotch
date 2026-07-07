@@ -24,6 +24,7 @@ struct TopSurfaceView: View {
     @State private var isHoveredNextMini = false
     
     @State private var elapsed: Double = 0.0
+    @State private var currentTimeString = ""
     let timer = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
     
     /// Returns true if the target display screen has a physical notch.
@@ -148,12 +149,14 @@ struct TopSurfaceView: View {
                         }
                     }
                 } else {
-                    let hoverEnabled = settingsStore.settings.enableHoverAffordance
-                    let title = (isHovered && hoverEnabled) ? "Top Notch" : ""
-                    if hasNotch {
-                        compactIdleSurfaceWithDeadzone(title: title)
+                    if isHoverExpansionActive {
+                        expandedIdleSurface()
                     } else {
-                        compactIdleSurface(title: title)
+                        if hasNotch {
+                            compactIdleSurfaceWithDeadzone(title: "")
+                        } else {
+                            compactIdleSurface(title: "")
+                        }
                     }
                 }
             }
@@ -183,6 +186,14 @@ struct TopSurfaceView: View {
             if stateStore.playbackState == .playing {
                 self.elapsed = stateStore.playerPosition
             }
+            let formatter = DateFormatter()
+            formatter.timeStyle = .short
+            self.currentTimeString = formatter.string(from: Date())
+        }
+        .onAppear {
+            let formatter = DateFormatter()
+            formatter.timeStyle = .short
+            self.currentTimeString = formatter.string(from: Date())
         }
     }
     
@@ -641,5 +652,180 @@ struct TopSurfaceView: View {
             }
         }
         return activeIndex
+    }
+
+    private func expandedIdleSurface() -> some View {
+        VStack(spacing: 0) {
+            deadzoneTopBand(
+                leading: {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(Color.green)
+                            .frame(width: 6, height: 6)
+                        Text("Top Notch")
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                    }
+                },
+                trailing: {
+                    Text(currentTimeString)
+                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.5))
+                }
+            )
+            
+            Group {
+                let widgetType = settingsStore.settings.idleWidgetType
+                switch widgetType {
+                case "systemResources":
+                    idleResourcesView
+                case "retroSprite":
+                    idleSpriteView
+                case "weather":
+                    idleWeatherView
+                default:
+                    idleDefaultView
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.horizontal, 12)
+            .padding(.bottom, 6)
+        }
+    }
+
+    private var idleResourcesView: some View {
+        HStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 4) {
+                    Image(systemName: "cpu")
+                        .font(.system(size: 10))
+                        .foregroundColor(Color(red: 0.35, green: 0.67, blue: 1.0))
+                    Text("CPU")
+                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.7))
+                    Spacer()
+                    Text("\(Int(SystemResourceMonitor.shared.metrics.cpuUsage * 100))%")
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundColor(.white)
+                }
+                
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color.white.opacity(0.08))
+                        Capsule()
+                            .fill(cpuColor(for: SystemResourceMonitor.shared.metrics.cpuUsage))
+                            .frame(width: geo.size.width * CGFloat(SystemResourceMonitor.shared.metrics.cpuUsage))
+                    }
+                }
+                .frame(height: 4)
+            }
+            .frame(maxWidth: .infinity)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 4) {
+                    Image(systemName: "memorychip")
+                        .font(.system(size: 10))
+                        .foregroundColor(Color(red: 0.42, green: 0.86, blue: 0.58))
+                    Text("RAM")
+                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.7))
+                    Spacer()
+                    Text(String(format: "%.1fG/%.0fG", SystemResourceMonitor.shared.metrics.totalMemoryGB * SystemResourceMonitor.shared.metrics.memoryUsage, SystemResourceMonitor.shared.metrics.totalMemoryGB))
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundColor(.white)
+                }
+                
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color.white.opacity(0.08))
+                        Capsule()
+                            .fill(Color(red: 0.42, green: 0.86, blue: 0.58))
+                            .frame(width: geo.size.width * CGFloat(SystemResourceMonitor.shared.metrics.memoryUsage))
+                    }
+                }
+                .frame(height: 4)
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .padding(.top, 4)
+    }
+
+    private var idleSpriteView: some View {
+        HStack(spacing: 12) {
+            if let spriteType = PixelSpriteType(rawValue: settingsStore.settings.selectedSpriteType) {
+                PixelSpriteView(spriteType: spriteType)
+                    .frame(width: 24, height: 24)
+            }
+            
+            VStack(alignment: .leading, spacing: 1) {
+                Text(spriteGreeting)
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                Text("Standing by on the island...")
+                    .font(.system(size: 9))
+                    .foregroundColor(.white.opacity(0.5))
+            }
+            Spacer()
+        }
+        .padding(.top, 4)
+    }
+
+    private var idleWeatherView: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "sun.max.fill")
+                .font(.system(size: 16))
+                .foregroundColor(.yellow)
+            
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Sunny • 22°C")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                Text("Precipitation: 0% | UV Index: 3")
+                    .font(.system(size: 9))
+                    .foregroundColor(.white.opacity(0.5))
+            }
+            Spacer()
+        }
+        .padding(.top, 4)
+    }
+
+    private var idleDefaultView: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Top Notch Dashboard")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                Text("Click to expand main drop-down menu.")
+                    .font(.system(size: 9))
+                    .foregroundColor(.white.opacity(0.5))
+            }
+            Spacer()
+        }
+        .padding(.top, 4)
+    }
+
+    private func cpuColor(for usage: Double) -> Color {
+        if usage > 0.8 {
+            return Color.red
+        } else if usage > 0.5 {
+            return Color.orange
+        } else {
+            return Color(red: 0.35, green: 0.67, blue: 1.0)
+        }
+    }
+
+    private var spriteGreeting: String {
+        switch settingsStore.settings.selectedSpriteType {
+        case "cat":
+            return "Meow! Cozy up here."
+        case "ghost":
+            return "Boo! Just chilling."
+        case "star":
+            return "Shine bright today!"
+        default:
+            return "Companion active."
+        }
     }
 }

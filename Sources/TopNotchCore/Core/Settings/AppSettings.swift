@@ -16,6 +16,8 @@ public struct AppSettings: Equatable, Sendable, Codable {
     public var inactiveSurfaceHeight: Double
     public var hoverSurfaceWidth: Double
     public var hoverSurfaceHeight: Double
+    public var idleWidgetType: String
+    public var selectedSpriteType: String
     
     public init(
         visibleModuleIdentifiers: [String] = ["music", "clipboard", "notes"],
@@ -32,7 +34,9 @@ public struct AppSettings: Equatable, Sendable, Codable {
         inactiveSurfaceWidth: Double = 420.0,
         inactiveSurfaceHeight: Double = 64.0,
         hoverSurfaceWidth: Double = 560.0,
-        hoverSurfaceHeight: Double = 118.0
+        hoverSurfaceHeight: Double = 118.0,
+        idleWidgetType: String = "systemResources",
+        selectedSpriteType: String = "cat"
     ) {
         self.visibleModuleIdentifiers = visibleModuleIdentifiers
         self.enableHoverAffordance = enableHoverAffordance
@@ -49,6 +53,8 @@ public struct AppSettings: Equatable, Sendable, Codable {
         self.inactiveSurfaceHeight = inactiveSurfaceHeight
         self.hoverSurfaceWidth = hoverSurfaceWidth
         self.hoverSurfaceHeight = hoverSurfaceHeight
+        self.idleWidgetType = idleWidgetType
+        self.selectedSpriteType = selectedSpriteType
     }
     
     private enum CodingKeys: String, CodingKey {
@@ -67,6 +73,8 @@ public struct AppSettings: Equatable, Sendable, Codable {
         case inactiveSurfaceHeight
         case hoverSurfaceWidth
         case hoverSurfaceHeight
+        case idleWidgetType
+        case selectedSpriteType
     }
     
     public init(from decoder: Decoder) throws {
@@ -86,5 +94,7 @@ public struct AppSettings: Equatable, Sendable, Codable {
         self.inactiveSurfaceHeight = try container.decodeIfPresent(Double.self, forKey: .inactiveSurfaceHeight) ?? 64.0
         self.hoverSurfaceWidth = try container.decodeIfPresent(Double.self, forKey: .hoverSurfaceWidth) ?? 560.0
         self.hoverSurfaceHeight = try container.decodeIfPresent(Double.self, forKey: .hoverSurfaceHeight) ?? 118.0
+        self.idleWidgetType = try container.decodeIfPresent(String.self, forKey: .idleWidgetType) ?? "systemResources"
+        self.selectedSpriteType = try container.decodeIfPresent(String.self, forKey: .selectedSpriteType) ?? "cat"
     }
 }

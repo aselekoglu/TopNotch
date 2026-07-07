@@ -39,6 +39,8 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(store.settings.inactiveSurfaceHeight, 64.0)
         XCTAssertEqual(store.settings.hoverSurfaceWidth, 560.0)
         XCTAssertEqual(store.settings.hoverSurfaceHeight, 118.0)
+        XCTAssertEqual(store.settings.idleWidgetType, "systemResources")
+        XCTAssertEqual(store.settings.selectedSpriteType, "cat")
     }
     
     func testUpdatingSettingsFiresPublisher() {
@@ -82,6 +84,8 @@ final class SettingsStoreTests: XCTestCase {
         newSettings.inactiveSurfaceHeight = 96.0
         newSettings.hoverSurfaceWidth = 760.0
         newSettings.hoverSurfaceHeight = 160.0
+        newSettings.idleWidgetType = "retroSprite"
+        newSettings.selectedSpriteType = "ghost"
         
         store.update(settings: newSettings)
         
@@ -90,7 +94,7 @@ final class SettingsStoreTests: XCTestCase {
         
         try? FileManager.default.removeItem(at: url)
     }
-
+ 
     func testBackwardCompatibleDecodeDefaultsMissingSurfaceSizes() throws {
         let json = """
         {
@@ -109,11 +113,13 @@ final class SettingsStoreTests: XCTestCase {
         """
         let data = Data(json.utf8)
         let decoded = try JSONDecoder().decode(AppSettings.self, from: data)
-
+ 
         XCTAssertEqual(decoded.inactiveSurfaceWidth, 420.0)
         XCTAssertEqual(decoded.inactiveSurfaceHeight, 64.0)
         XCTAssertEqual(decoded.hoverSurfaceWidth, 560.0)
         XCTAssertEqual(decoded.hoverSurfaceHeight, 118.0)
+        XCTAssertEqual(decoded.idleWidgetType, "systemResources")
+        XCTAssertEqual(decoded.selectedSpriteType, "cat")
     }
 
     func testLoadMigratesLegacySurfaceDefaultsToCompactDefaults() throws {

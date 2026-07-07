@@ -8,7 +8,7 @@ final class SettingsWindowController: NSWindowController {
         let hostingView = NSHostingView(rootView: contentView)
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 520, height: 560),
-            styleMask: [.titled, .closable, .miniaturizable],
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
@@ -16,6 +16,7 @@ final class SettingsWindowController: NSWindowController {
         window.title = "Top Notch Settings"
         window.contentView = hostingView
         window.isReleasedWhenClosed = false
+        window.minSize = NSSize(width: 520, height: 500)
         window.center()
 
         super.init(window: window)

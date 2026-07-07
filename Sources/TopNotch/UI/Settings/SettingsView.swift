@@ -28,112 +28,154 @@ struct SettingsView: View {
                 .tag(2)
         }
         .padding(20)
-        .frame(width: 520, height: 560)
+        .frame(minWidth: 520, maxWidth: .infinity, minHeight: 560, maxHeight: .infinity)
     }
     
     private var interactionView: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Interaction Preferences")
-                .font(.headline)
-            
-            Toggle("Enable Hover Spring Scale Animation", isOn: Binding(
-                get: { store.settings.enableHoverAffordance },
-                set: { newValue in
-                    var updated = store.settings
-                    updated.enableHoverAffordance = newValue
-                    store.update(settings: updated)
+        ScrollView(.vertical, showsIndicators: true) {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Interaction Preferences")
+                    .font(.headline)
+                
+                Toggle("Enable Hover Spring Scale Animation", isOn: Binding(
+                    get: { store.settings.enableHoverAffordance },
+                    set: { newValue in
+                        var updated = store.settings
+                        updated.enableHoverAffordance = newValue
+                        store.update(settings: updated)
+                    }
+                ))
+                
+                Toggle("Expand Notch to Show Music Controls on Hover", isOn: Binding(
+                    get: { store.settings.enableLiveActivityExpansion },
+                    set: { newValue in
+                        var updated = store.settings
+                        updated.enableLiveActivityExpansion = newValue
+                        store.update(settings: updated)
+                    }
+                ))
+                
+                Divider()
+                
+                HStack {
+                    Text("Global Keyboard Shortcut")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Text("⌥ Space")
+                        .font(.system(.body, design: .monospaced))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.white.opacity(0.1))
+                        .cornerRadius(6)
                 }
-            ))
-            
-            Toggle("Expand Notch to Show Music Controls on Hover", isOn: Binding(
-                get: { store.settings.enableLiveActivityExpansion },
-                set: { newValue in
-                    var updated = store.settings
-                    updated.enableLiveActivityExpansion = newValue
-                    store.update(settings: updated)
-                }
-            ))
-            
-            Divider()
-            
-            HStack {
-                Text("Global Keyboard Shortcut")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                Spacer()
-                Text("⌥ Space")
-                    .font(.system(.body, design: .monospaced))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.white.opacity(0.1))
-                    .cornerRadius(6)
             }
+            .padding(.trailing, 8)
         }
     }
     
     private var displayView: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Display Preferences")
-                .font(.headline)
-            
-            Toggle("Force Virtual Island (Notchless) Style", isOn: Binding(
-                get: { store.settings.forceVirtualIslandStyle },
-                set: { newValue in
-                    var updated = store.settings
-                    updated.forceVirtualIslandStyle = newValue
-                    store.update(settings: updated)
+        ScrollView(.vertical, showsIndicators: true) {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Display Preferences")
+                    .font(.headline)
+                
+                Toggle("Force Virtual Island (Notchless) Style", isOn: Binding(
+                    get: { store.settings.forceVirtualIslandStyle },
+                    set: { newValue in
+                        var updated = store.settings
+                        updated.forceVirtualIslandStyle = newValue
+                        store.update(settings: updated)
+                    }
+                ))
+                
+                Picker("Target Display", selection: Binding(
+                    get: { store.settings.targetDisplayIndex },
+                    set: { newValue in
+                        var updated = store.settings
+                        updated.targetDisplayIndex = newValue
+                        store.update(settings: updated)
+                    }
+                )) {
+                    ForEach(0..<NSScreen.screens.count, id: \.self) { index in
+                        Text("Display \(index + 1) (\(Int(NSScreen.screens[index].frame.width))x\(Int(NSScreen.screens[index].frame.height)))")
+                            .tag(index)
+                    }
                 }
-            ))
-            
-            Picker("Target Display", selection: Binding(
-                get: { store.settings.targetDisplayIndex },
-                set: { newValue in
-                    var updated = store.settings
-                    updated.targetDisplayIndex = newValue
-                    store.update(settings: updated)
+                .pickerStyle(.menu)
+                
+                Text("Determines where the Top Notch overlay and dropdown main panel appear on launch.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                Divider()
+
+                Text("Idle Hover Display")
+                    .font(.headline)
+
+                Picker("Widget Type", selection: Binding(
+                    get: { store.settings.idleWidgetType },
+                    set: { newValue in
+                        var updated = store.settings
+                        updated.idleWidgetType = newValue
+                        store.update(settings: updated)
+                    }
+                )) {
+                    Text("None").tag("none")
+                    Text("System Resources (CPU & RAM)").tag("systemResources")
+                    Text("Companion Sprite (Retro Pet)").tag("retroSprite")
+                    Text("Simulated Weather").tag("weather")
                 }
-            )) {
-                ForEach(0..<NSScreen.screens.count, id: \.self) { index in
-                    Text("Display \(index + 1) (\(Int(NSScreen.screens[index].frame.width))x\(Int(NSScreen.screens[index].frame.height)))")
-                        .tag(index)
+                .pickerStyle(.menu)
+
+                if store.settings.idleWidgetType == "retroSprite" {
+                    Picker("Select Companion", selection: Binding(
+                        get: { store.settings.selectedSpriteType },
+                        set: { newValue in
+                            var updated = store.settings
+                            updated.selectedSpriteType = newValue
+                            store.update(settings: updated)
+                        }
+                    )) {
+                        Text("Pixel Cat").tag("cat")
+                        Text("Pac-Man Ghost").tag("ghost")
+                        Text("Glowing Star").tag("star")
+                    }
+                    .pickerStyle(.menu)
                 }
+
+                Divider()
+
+                calibrationPreview
+
+                settingsGroup(
+                    title: "Physical Notch Deadzone",
+                    region: .physicalDeadzone,
+                    width: settingsBinding(\.customNotchWidth, region: .physicalDeadzone, axis: .width),
+                    height: settingsBinding(\.customNotchHeight, region: .physicalDeadzone, axis: .height),
+                    widthRange: 40...420,
+                    heightRange: 0...96
+                )
+
+                settingsGroup(
+                    title: "Inactive View Size",
+                    region: .inactiveSurface,
+                    width: settingsBinding(\.inactiveSurfaceWidth, region: .inactiveSurface, axis: .width),
+                    height: settingsBinding(\.inactiveSurfaceHeight, region: .inactiveSurface, axis: .height),
+                    widthRange: 220...760,
+                    heightRange: 34...150
+                )
+
+                settingsGroup(
+                    title: "Hover View Size",
+                    region: .hoverSurface,
+                    width: settingsBinding(\.hoverSurfaceWidth, region: .hoverSurface, axis: .width),
+                    height: settingsBinding(\.hoverSurfaceHeight, region: .hoverSurface, axis: .height),
+                    widthRange: 280...900,
+                    heightRange: 56...240
+                )
             }
-            .pickerStyle(.menu)
-            
-            Text("Determines where the Top Notch overlay and dropdown main panel appear on launch.")
-                .font(.caption)
-                .foregroundColor(.secondary)
-
-            Divider()
-
-            calibrationPreview
-
-            settingsGroup(
-                title: "Physical Notch Deadzone",
-                region: .physicalDeadzone,
-                width: settingsBinding(\.customNotchWidth, region: .physicalDeadzone, axis: .width),
-                height: settingsBinding(\.customNotchHeight, region: .physicalDeadzone, axis: .height),
-                widthRange: 40...420,
-                heightRange: 0...96
-            )
-
-            settingsGroup(
-                title: "Inactive View Size",
-                region: .inactiveSurface,
-                width: settingsBinding(\.inactiveSurfaceWidth, region: .inactiveSurface, axis: .width),
-                height: settingsBinding(\.inactiveSurfaceHeight, region: .inactiveSurface, axis: .height),
-                widthRange: 220...760,
-                heightRange: 34...150
-            )
-
-            settingsGroup(
-                title: "Hover View Size",
-                region: .hoverSurface,
-                width: settingsBinding(\.hoverSurfaceWidth, region: .hoverSurface, axis: .width),
-                height: settingsBinding(\.hoverSurfaceHeight, region: .hoverSurface, axis: .height),
-                widthRange: 280...900,
-                heightRange: 56...240
-            )
+            .padding(.trailing, 8)
         }
     }
     
