@@ -7,6 +7,23 @@ struct SettingsView: View {
     @ObservedObject private var highlightStore = NotchCalibrationHighlightStore.shared
     @State private var activeTab = 0
     
+    private var displayPickerBinding: Binding<Int> {
+        Binding(
+            get: {
+                if let active = store.activeScreen {
+                    let activeId = SettingsStore.screenIdentifier(active)
+                    return NSScreen.screens.firstIndex { SettingsStore.screenIdentifier($0) == activeId } ?? 0
+                }
+                return 0
+            },
+            set: { index in
+                if index >= 0 && index < NSScreen.screens.count {
+                    store.setActiveScreen(NSScreen.screens[index])
+                }
+            }
+        )
+    }
+    
     var body: some View {
         TabView(selection: $activeTab) {
             interactionView
@@ -89,25 +106,6 @@ struct SettingsView: View {
                     }
                 ))
                 
-                Picker("Target Display", selection: Binding(
-                    get: { store.settings.targetDisplayIndex },
-                    set: { newValue in
-                        var updated = store.settings
-                        updated.targetDisplayIndex = newValue
-                        store.update(settings: updated)
-                    }
-                )) {
-                    ForEach(0..<NSScreen.screens.count, id: \.self) { index in
-                        Text("Display \(index + 1) (\(Int(NSScreen.screens[index].frame.width))x\(Int(NSScreen.screens[index].frame.height)))")
-                            .tag(index)
-                    }
-                }
-                .pickerStyle(.menu)
-                
-                Text("Determines where the Top Notch overlay and dropdown main panel appear on launch.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-
                 Divider()
 
                 Text("Idle Hover Display")
@@ -145,6 +143,19 @@ struct SettingsView: View {
                 }
 
                 Divider()
+
+                Text("Calibration & Screen Sizing")
+                    .font(.headline)
+
+                Picker("Configure Screen", selection: displayPickerBinding) {
+                    ForEach(0..<NSScreen.screens.count, id: \.self) { index in
+                        let screen = NSScreen.screens[index]
+                        let name = screen.localizedName.isEmpty ? "Display" : screen.localizedName
+                        Text("\(name) (\(Int(screen.frame.width))x\(Int(screen.frame.height)))")
+                            .tag(index)
+                    }
+                }
+                .pickerStyle(.menu)
 
                 calibrationPreview
 
@@ -291,36 +302,72 @@ struct SettingsView: View {
         heightRange: ClosedRange<Double>
     ) -> some View {
         let isActive = highlightStore.activeHighlight?.region == region
-        return GroupBox {
-            VStack(alignment: .leading, spacing: 10) {
-                settingSliderRow(
-                    label: "Width",
-                    region: region,
-                    axis: .width,
-                    value: width,
-                    range: widthRange
-                )
-
-                settingSliderRow(
-                    label: "Height",
-                    region: region,
-                    axis: .height,
-                    value: height,
-                    range: heightRange
-                )
+        let hasPhysicalNotch = Binding<Bool>(
+            get: {
+                if region == .physicalDeadzone {
+                    return store.settings.customNotchHeight > 0
+                }
+                return true
+            },
+            set: { hasNotch in
+                if region == .physicalDeadzone {
+                    var updated = store.settings
+                    if hasNotch {
+                        updated.customNotchWidth = 180.0
+                        updated.customNotchHeight = 24.0
+                    } else {
+                        updated.customNotchWidth = 0.0
+                        updated.customNotchHeight = 0.0
+                    }
+                    store.update(settings: updated)
+                }
             }
-            .padding(.top, 2)
+        )
+
+        return GroupBox {
+            VStack(alignment: .leading, spacing: 12) {
+                if region == .physicalDeadzone {
+                    Toggle("Has Physical Notch", isOn: hasPhysicalNotch)
+                        .toggleStyle(.checkbox)
+                        .padding(.bottom, 4)
+                }
+
+                if region != .physicalDeadzone || hasPhysicalNotch.wrappedValue {
+                    settingSliderRow(
+                        label: "Width",
+                        region: region,
+                        axis: .width,
+                        value: width,
+                        range: widthRange
+                    )
+
+                    settingSliderRow(
+                        label: "Height",
+                        region: region,
+                        axis: .height,
+                        value: height,
+                        range: heightRange
+                    )
+                } else {
+                    Text("No physical notch active for this screen. The active zone floats as a virtual island below the menu bar.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.vertical, 4)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            .padding(.top, 4)
         } label: {
             Text(title)
                 .font(.subheadline.weight(.semibold))
         }
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(calibrationColor(for: region).opacity(isActive ? 0.12 : 0.0))
+                .fill(calibrationColor(for: region).opacity(isActive ? 0.08 : 0.0))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(calibrationColor(for: region).opacity(isActive ? 0.55 : 0.0), lineWidth: 1)
+                .stroke(calibrationColor(for: region).opacity(isActive ? 0.4 : 0.0), lineWidth: 1)
         )
     }
 
@@ -332,34 +379,33 @@ struct SettingsView: View {
         range: ClosedRange<Double>
     ) -> some View {
         let isActive = highlightStore.activeHighlight == NotchCalibrationHighlight(region: region, axis: axis)
-        return HStack(spacing: 10) {
+        return HStack(spacing: 12) {
             Text(label)
                 .font(.subheadline)
                 .foregroundColor(isActive ? calibrationColor(for: region) : .primary)
                 .frame(width: 52, alignment: .leading)
 
-            Slider(
+            GlassSlider(
                 value: value,
-                in: range,
-                step: 1,
+                range: range,
+                accentColor: calibrationColor(for: region),
                 onEditingChanged: { isEditing in
                     if isEditing {
                         highlightStore.activate(region: region, axis: axis)
                     }
                 }
             )
-            .tint(calibrationColor(for: region))
 
             Text("\(Int(value.wrappedValue)) pt")
                 .font(.system(.body, design: .monospaced))
                 .foregroundColor(isActive ? calibrationColor(for: region) : .secondary)
                 .frame(width: 54, alignment: .trailing)
         }
-        .padding(.vertical, 3)
+        .padding(.vertical, 4)
         .padding(.horizontal, 6)
         .background(
             RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(calibrationColor(for: region).opacity(isActive ? 0.16 : 0.0))
+                .fill(calibrationColor(for: region).opacity(isActive ? 0.12 : 0.0))
         )
     }
 
@@ -396,13 +442,15 @@ struct SettingsView: View {
                     calibrationShape(size: hoverSize, region: .hoverSurface)
                     calibrationShape(size: inactiveSize, region: .inactiveSurface)
 
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(calibrationColor(for: .physicalDeadzone).opacity(activeOpacity(for: .physicalDeadzone, fill: true)))
-                        .frame(width: deadzoneSize.width, height: deadzoneSize.height)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .stroke(calibrationColor(for: .physicalDeadzone).opacity(activeOpacity(for: .physicalDeadzone, fill: false)), lineWidth: 2)
-                        )
+                    if deadzoneHeight > 0 {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(calibrationColor(for: .physicalDeadzone).opacity(activeOpacity(for: .physicalDeadzone, fill: true)))
+                            .frame(width: deadzoneSize.width, height: deadzoneSize.height)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .stroke(calibrationColor(for: .physicalDeadzone).opacity(activeOpacity(for: .physicalDeadzone, fill: false)), lineWidth: 2)
+                            )
+                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .padding(.top, 6)
@@ -460,5 +508,80 @@ struct SettingsView: View {
                 store.update(settings: updated)
             }
         )
+    }
+}
+
+struct GlassSlider: View {
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+    let accentColor: Color
+    let onEditingChanged: (Bool) -> Void
+    
+    @State private var isDragging = false
+    @State private var isHovered = false
+    
+    var body: some View {
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            let percent = CGFloat((value - range.lowerBound) / (range.upperBound - range.lowerBound))
+            let fillWidth = max(0, min(width, width * percent))
+            
+            ZStack(alignment: .leading) {
+                // Background Track
+                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                    .fill(Color.white.opacity(0.08))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4, style: .continuous)
+                            .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                    )
+                    .frame(height: 8)
+                
+                // Active Track
+                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [accentColor.opacity(0.4), accentColor],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: fillWidth, height: 8)
+                    .shadow(color: accentColor.opacity(0.3), radius: isDragging ? 6 : 2)
+                
+                // Frosted Thumb
+                Circle()
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        Circle()
+                            .stroke(Color.white.opacity(0.6), lineWidth: 1.5)
+                    )
+                    .shadow(color: Color.black.opacity(0.4), radius: 3, x: 0, y: 1.5)
+                    .frame(width: 16, height: 16)
+                    .scaleEffect(isDragging ? 1.3 : (isHovered ? 1.15 : 1.0))
+                    .offset(x: max(0, min(width - 16, fillWidth - 8)))
+                    .animation(.spring(response: 0.25, dampingFraction: 0.6), value: isDragging || isHovered)
+            }
+            .frame(height: 16)
+            .contentShape(Rectangle())
+            .onHover { hovering in
+                isHovered = hovering
+            }
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { gesture in
+                        isDragging = true
+                        onEditingChanged(true)
+                        let locationX = gesture.location.x
+                        let newPercent = max(0, min(1, locationX / width))
+                        let newValue = range.lowerBound + Double(newPercent) * (range.upperBound - range.lowerBound)
+                        value = newValue.rounded()
+                    }
+                    .onEnded { _ in
+                        isDragging = false
+                        onEditingChanged(false)
+                    }
+            )
+        }
+        .frame(height: 16)
     }
 }

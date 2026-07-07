@@ -1,9 +1,12 @@
-import Foundation
-import Combine
+#if canImport(AppKit)
+import AppKit
+#endif
 
 @MainActor
 public final class MusicStateStore: ObservableObject, @unchecked Sendable {
     public static let shared = MusicStateStore(provider: AppleMusicProvider())
+
+    @Published public var dominantColorHex: String? = nil
 
     @Published public var currentTrack: NowPlayingTrack? {
         didSet {
@@ -15,8 +18,13 @@ public final class MusicStateStore: ObservableObject, @unchecked Sendable {
             
             if currentTrack == nil {
                 self.lyricsState = .unavailable
+                self.dominantColorHex = nil
             } else {
                 self.lyricsState = .loading
+                self.dominantColorHex = nil
+                if let artwork = currentTrack?.artworkUrl {
+                    updateDominantColor(for: artwork)
+                }
                 lyricsFetchTask = Task {
                     await fetchLyrics()
                 }
@@ -144,6 +152,7 @@ public final class MusicStateStore: ObservableObject, @unchecked Sendable {
                         duration: track.duration,
                         artworkUrl: highResUrl
                     )
+                    updateDominantColor(for: highResUrl)
                 }
             }
         } catch {
@@ -214,4 +223,85 @@ public final class MusicStateStore: ObservableObject, @unchecked Sendable {
         self.currentTrack = track
         self.playbackState = mappedState
     }
+
+    private func updateDominantColor(for urlString: String?) {
+        guard let urlString = urlString, let url = URL(string: urlString) else {
+            self.dominantColorHex = nil
+            return
+        }
+        
+        Task {
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                #if canImport(AppKit)
+                if let image = NSImage(data: data) {
+                    let hex = image.dominantColor().toHexString()
+                    await MainActor.run {
+                        self.dominantColorHex = hex
+                    }
+                }
+                #endif
+            } catch {
+                print("[MusicStateStore] Failed to fetch dominant color for \(urlString): \(error)")
+            }
+        }
+    }
 }
+
+#if canImport(AppKit)
+extension NSImage {
+    func dominantColor() -> NSColor {
+        let newSize = NSSize(width: 10, height: 10)
+        guard let representation = NSBitmapImageRep(
+            bitmapDataPlanes: nil,
+            pixelsWide: Int(newSize.width),
+            pixelsHigh: Int(newSize.height),
+            bitsPerSample: 8,
+            samplesPerPixel: 4,
+            hasAlpha: true,
+            isPlanar: false,
+            colorSpaceName: .calibratedRGB,
+            bytesPerRow: 0,
+            bitsPerPixel: 0
+        ) else {
+            return .white
+        }
+        
+        representation.size = newSize
+        
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: representation)
+        self.draw(in: NSRect(origin: .zero, size: newSize), from: NSRect(origin: .zero, size: self.size), operation: .copy, fraction: 1.0)
+        NSGraphicsContext.restoreGraphicsState()
+        
+        var r: CGFloat = 0
+        var g: CGFloat = 0
+        var b: CGFloat = 0
+        var count: CGFloat = 0
+        
+        for y in 0..<10 {
+            for x in 0..<10 {
+                if let color = representation.colorAt(x: x, y: y) {
+                    r += color.redComponent
+                    g += color.greenComponent
+                    b += color.blueComponent
+                    count += 1
+                }
+            }
+        }
+        
+        if count == 0 { return .white }
+        return NSColor(red: r / count, green: g / count, blue: b / count, alpha: 1.0)
+    }
+}
+
+extension NSColor {
+    func toHexString() -> String {
+        guard let rgb = self.usingColorSpace(.sRGB) else { return "#FFFFFF" }
+        let r = Int(rgb.redComponent * 255)
+        let g = Int(rgb.greenComponent * 255)
+        let b = Int(rgb.blueComponent * 255)
+        return String(format: "#%02X%02X%02X", r, g, b)
+    }
+}
+#endif

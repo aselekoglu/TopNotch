@@ -51,7 +51,7 @@ struct MainPanelView: View {
     @State private var selectedSection: PanelSection = .overview
 
     var body: some View {
-        let hasNotch = settingsStore.settings.forceVirtualIslandStyle ? false : (safeAreaTopInset > 0)
+        let hasNotch = (settingsStore.settings.forceVirtualIslandStyle || settingsStore.settings.customNotchHeight == 0) ? false : (safeAreaTopInset > 0)
         let notchWidth = CGFloat(settingsStore.settings.customNotchWidth)
         let notchHeight = CGFloat(settingsStore.settings.customNotchHeight)
         let hasLyricsTab = MainPanelMetrics.hasLyricsTab(for: musicStore.lyricsState)

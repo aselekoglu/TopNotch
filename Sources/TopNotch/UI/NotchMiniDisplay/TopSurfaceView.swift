@@ -33,10 +33,17 @@ struct TopSurfaceView: View {
     
     /// Returns true if the target display screen has a physical notch.
     var hasNotch: Bool {
-        if settingsStore.settings.forceVirtualIslandStyle {
+        if settingsStore.settings.forceVirtualIslandStyle || settingsStore.settings.customNotchHeight == 0 {
             return false
         }
         return safeAreaTopInset > 0
+    }
+    
+    private var activeBorderColor: Color {
+        if stateStore.playbackState == .playing, let hex = stateStore.dominantColorHex, let color = Color(hex: hex) {
+            return color
+        }
+        return Color.white
     }
 
     private var isHoverExpansionActive: Bool {
@@ -167,10 +174,15 @@ struct TopSurfaceView: View {
             }
             .frame(width: targetWidth, height: targetHeight)
             .overlay(
-                surfaceShape
-                    .stroke(Color.white.opacity(isHovered ? 0.15 : 0.05), lineWidth: 1)
+                TopSurfaceShape(
+                    hasNotch: hasNotch,
+                    cornerRadius: targetCornerRadius,
+                    flareRadius: 10,
+                    inset: 0.5
+                )
+                .stroke(activeBorderColor.opacity(isHovered ? 0.35 : 0.12), lineWidth: 1)
             )
-            .shadow(color: .black.opacity(isHovered ? 0.4 : 0.15), radius: isHovered ? 8 : 3, y: isHovered ? 4 : 1.5)
+            .shadow(color: .black.opacity(isHovered ? 0.25 : 0.1), radius: isHovered ? 10 : 4, y: isHovered ? 5 : 2)
             .animation(.spring(response: 0.28, dampingFraction: 0.75, blendDuration: 0), value: isHovered)
             .animation(.spring(response: 0.28, dampingFraction: 0.75, blendDuration: 0), value: stateStore.playbackState)
             .onHover { hovering in
@@ -485,26 +497,31 @@ struct TopSurfaceView: View {
         @ViewBuilder leading: () -> Leading,
         @ViewBuilder trailing: () -> Trailing
     ) -> some View {
-        HStack(alignment: .bottom, spacing: 10) {
+        let height = hasNotch ? max(0, notchContentLayout.deadzoneFrame.height) : 24.0
+        HStack(alignment: hasNotch ? .bottom : .center, spacing: 10) {
             HStack {
                 leading()
                 Spacer(minLength: 0)
             }
-            .frame(width: notchContentLayout.leadingBandFrame.width, alignment: .leading)
+            .frame(width: hasNotch ? notchContentLayout.leadingBandFrame.width : nil, alignment: .leading)
             .clipped()
 
-            Spacer(minLength: notchContentLayout.deadzoneFrame.width)
+            if hasNotch {
+                Spacer(minLength: notchContentLayout.deadzoneFrame.width)
+            } else {
+                Spacer(minLength: 0)
+            }
 
             HStack {
                 Spacer(minLength: 0)
                 trailing()
             }
-            .frame(width: notchContentLayout.trailingBandFrame.width, alignment: .trailing)
+            .frame(width: hasNotch ? notchContentLayout.trailingBandFrame.width : nil, alignment: .trailing)
             .clipped()
         }
-        .frame(height: max(0, notchContentLayout.deadzoneFrame.height))
+        .frame(height: height)
         .padding(.horizontal, 20)
-        .padding(.top, 6)
+        .padding(.top, hasNotch ? 6 : 12)
     }
 
     @ViewBuilder
@@ -826,61 +843,83 @@ struct TopSurfaceShape: Shape {
     let hasNotch: Bool
     let cornerRadius: CGFloat
     let flareRadius: CGFloat
+    var inset: CGFloat = 0
     
     func path(in rect: CGRect) -> Path {
+        let r = rect.insetBy(dx: inset, dy: inset)
         if hasNotch {
             var path = Path()
-            let fr = min(flareRadius, rect.width / 4, rect.height / 2)
-            let cr = min(cornerRadius, rect.height - fr)
+            let fr = min(flareRadius, r.width / 4, r.height / 2)
+            let cr = min(cornerRadius, r.height - fr)
             
             // Start at top-left edge, flared outward
-            path.move(to: CGPoint(x: rect.minX - fr, y: rect.minY))
+            path.move(to: CGPoint(x: r.minX - fr, y: r.minY))
             
             // Top-left flare-out curve
             path.addArc(
-                tangent1End: CGPoint(x: rect.minX, y: rect.minY),
-                tangent2End: CGPoint(x: rect.minX, y: rect.maxY),
+                tangent1End: CGPoint(x: r.minX, y: r.minY),
+                tangent2End: CGPoint(x: r.minX, y: r.maxY),
                 radius: fr
             )
             
             // Left vertical wall
-            path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY - cr))
+            path.addLine(to: CGPoint(x: r.minX, y: r.maxY - cr))
             
             // Bottom-left corner
             path.addArc(
-                tangent1End: CGPoint(x: rect.minX, y: rect.maxY),
-                tangent2End: CGPoint(x: rect.maxX, y: rect.maxY),
+                tangent1End: CGPoint(x: r.minX, y: r.maxY),
+                tangent2End: CGPoint(x: r.maxX, y: r.maxY),
                 radius: cr
             )
             
             // Bottom edge
-            path.addLine(to: CGPoint(x: rect.maxX - cr, y: rect.maxY))
+            path.addLine(to: CGPoint(x: r.maxX - cr, y: r.maxY))
             
             // Bottom-right corner
             path.addArc(
-                tangent1End: CGPoint(x: rect.maxX, y: rect.maxY),
-                tangent2End: CGPoint(x: rect.maxX, y: rect.minY),
+                tangent1End: CGPoint(x: r.maxX, y: r.maxY),
+                tangent2End: CGPoint(x: r.maxX, y: r.minY),
                 radius: cr
             )
             
             // Right vertical wall
-            path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY + fr))
+            path.addLine(to: CGPoint(x: r.maxX, y: r.minY + fr))
             
             // Top-right flare-out curve
             path.addArc(
-                tangent1End: CGPoint(x: rect.maxX, y: rect.minY),
-                tangent2End: CGPoint(x: rect.maxX + fr, y: rect.minY),
+                tangent1End: CGPoint(x: r.maxX, y: r.minY),
+                tangent2End: CGPoint(x: r.maxX + fr, y: r.minY),
                 radius: fr
             )
             
-            path.addLine(to: CGPoint(x: rect.maxX + fr, y: rect.minY))
+            path.addLine(to: CGPoint(x: r.maxX + fr, y: r.minY))
             path.closeSubpath()
             return path
         } else {
             // Standard rounded rectangle for floating island
             var path = Path()
-            path.addRoundedRect(in: rect, cornerSize: CGSize(width: cornerRadius, height: cornerRadius), style: .continuous)
+            let adjustedCR = max(0, cornerRadius - inset)
+            path.addRoundedRect(in: r, cornerSize: CGSize(width: adjustedCR, height: adjustedCR), style: .continuous)
             return path
         }
+    }
+}
+
+extension Color {
+    init?(hex: String) {
+        var cString: String = hex.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        if cString.hasPrefix("#") {
+            cString.remove(at: cString.startIndex)
+        }
+        if cString.count != 6 {
+            return nil
+        }
+        var rgbValue: UInt64 = 0
+        Scanner(string: cString).scanHexInt64(&rgbValue)
+        self.init(
+            red: Double((rgbValue & 0xFF0000) >> 16) / 255.0,
+            green: Double((rgbValue & 0x00FF00) >> 8) / 255.0,
+            blue: Double(rgbValue & 0x0000FF) / 255.0
+        )
     }
 }
